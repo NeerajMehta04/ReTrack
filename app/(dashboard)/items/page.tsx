@@ -93,7 +93,7 @@ function ItemsList() {
             >
               {activeCategory.icon} {activeCategory.name}
               <button
-                onClick={() => router.push('/items')}
+                onClick={() => router.push('/categories')}
                 className="w-4 h-4 rounded-full flex items-center justify-center hover:bg-black/10"
               >
                 <X className="w-2.5 h-2.5" />

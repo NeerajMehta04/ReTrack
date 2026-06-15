@@ -5,7 +5,7 @@ import { useParams, useRouter } from 'next/navigation'
 import Image from 'next/image'
 import { createClient } from '@/lib/supabase/client'
 import type { Item, Log, Category } from '@/types'
-import { ArrowLeft, TrendingUp, TrendingDown, Pencil, Trash2, ChevronDown, Search, SlidersHorizontal } from 'lucide-react'
+import { ArrowLeft, TrendingUp, TrendingDown, Pencil, Trash2, ChevronDown, Search, SlidersHorizontal, RefreshCw, Camera } from 'lucide-react'
 import { formatDate } from '@/lib/utils'
 import { Skeleton } from '@/components/ui/Skeleton'
 import ItemModal from '@/components/items/ItemModal'
@@ -40,7 +40,13 @@ export default function ItemDetailPage() {
   const [comment, setComment] = useState('')
   const [condition, setCondition] = useState<'good' | 'fair' | 'poor' | ''>('')
   const [logging, setLogging] = useState(false)
+
+  // ── Carbon ────────────────────────────────────────────────────
   const [estimating, setEstimating] = useState(false)
+  const [carbonExpanded, setCarbonExpanded] = useState(false)
+  const [editingCarbon, setEditingCarbon] = useState(false)
+  const [editCarbonKg, setEditCarbonKg] = useState('')
+  const [editCarbonSummary, setEditCarbonSummary] = useState('')
 
   const refreshData = useCallback(async () => {
     const [itemRes, logsRes] = await Promise.all([
@@ -64,7 +70,6 @@ export default function ItemDetailPage() {
       if (fetchedItem) {
         setItem(fetchedItem)
 
-        // Fetch siblings: all items in the same category (or all items if no category)
         const siblingsQuery = fetchedItem.category_id
           ? supabase.from('items').select('id, name, stock, image_url, category_id, description, created_at').eq('category_id', fetchedItem.category_id).is('deleted_at', null).order('name')
           : supabase.from('items').select('id, name, stock, image_url, category_id, description, created_at').is('deleted_at', null).order('name')
@@ -78,12 +83,10 @@ export default function ItemDetailPage() {
     })
   }, [id])
 
-  // Reset switcher search when it closes
   useEffect(() => {
     if (!switcherOpen) setSwitcherSearch('')
   }, [switcherOpen])
 
-  // Lock body scroll when any sheet is open
   useEffect(() => {
     const open = switcherOpen || editOpen || confirmDelete
     document.body.style.overflow = open ? 'hidden' : ''
@@ -117,7 +120,6 @@ export default function ItemDetailPage() {
           setItem(prev => prev ? { ...prev, carbon_kg_total: newTotal, stock: fresh.stock } : prev)
         }
       }
-      // Also update the sibling's stock count so the switcher stays accurate
       setSiblings(prev => prev.map(s => s.id === id
         ? { ...s, stock: s.stock + (direction === 'in' ? qty : -qty) }
         : s
@@ -148,6 +150,23 @@ export default function ItemDetailPage() {
     }
   }
 
+  async function handleImageUpload(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0]
+    if (!file || !item) return
+    try {
+      const ext = file.name.split('.').pop()
+      const path = `${item.id}.${ext}`
+      const { error } = await supabase.storage.from('items').upload(path, file, { upsert: true })
+      if (error) throw error
+      const imageUrl = supabase.storage.from('items').getPublicUrl(path).data.publicUrl
+      await supabase.from('items').update({ image_url: imageUrl }).eq('id', item.id)
+      setItem(prev => prev ? { ...prev, image_url: imageUrl } : prev)
+      toast.success('Photo updated')
+    } catch (err: unknown) {
+      toast.error(err instanceof Error ? err.message : 'Upload failed')
+    }
+  }
+
   async function handleEstimateCarbon() {
     if (!item?.image_url) return
     setEstimating(true)
@@ -155,10 +174,7 @@ export default function ItemDetailPage() {
       const res = await fetch('/api/estimate-carbon', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          imageUrl: item.image_url,
-          itemName: item.name,
-        })
+        body: JSON.stringify({ imageUrl: item.image_url, itemName: item.name })
       })
       const data = await res.json()
       const carbonTotal = +(data.carbon_kg_per_item * item.stock).toFixed(1)
@@ -176,12 +192,40 @@ export default function ItemDetailPage() {
         carbon_summary: data.summary
       } : prev)
 
+      setCarbonExpanded(true)
       toast.success(`~${carbonTotal} kg CO₂ saved!`)
     } catch {
       toast.error('Estimation failed — try again')
     } finally {
       setEstimating(false)
     }
+  }
+
+  function startCarbonEdit() {
+    setEditCarbonKg(String(item?.carbon_kg_per_item ?? ''))
+    setEditCarbonSummary(item?.carbon_summary ?? '')
+    setEditingCarbon(true)
+    setCarbonExpanded(true)
+  }
+
+  async function saveCarbonEdit() {
+    if (!item) return
+    const perItem = parseFloat(editCarbonKg)
+    if (!perItem || perItem <= 0) { toast.error('Enter a valid kg value'); return }
+    const newTotal = +(perItem * item.stock).toFixed(1)
+    await supabase.from('items').update({
+      carbon_kg_per_item: perItem,
+      carbon_kg_total: newTotal,
+      carbon_summary: editCarbonSummary.trim() || null
+    }).eq('id', item.id)
+    setItem(prev => prev ? {
+      ...prev,
+      carbon_kg_per_item: perItem,
+      carbon_kg_total: newTotal,
+      carbon_summary: editCarbonSummary.trim() || null
+    } : prev)
+    setEditingCarbon(false)
+    toast.success('Carbon data updated')
   }
 
   // ── Switcher helpers ─────────────────────────────────────────
@@ -193,11 +237,20 @@ export default function ItemDetailPage() {
   // ── Loading skeleton ─────────────────────────────────────────
   if (loading) {
     return (
-      <div className="p-4 space-y-4">
-        <Skeleton className="h-9 w-full rounded-2xl" />
-        <Skeleton className="h-52 w-full rounded-2xl" />
-        <Skeleton className="h-28 w-full rounded-2xl" />
-        <Skeleton className="h-24 w-full rounded-2xl" />
+      <div>
+        <div className="flex items-center gap-3 px-4 py-3" style={{ borderBottom: '0.5px solid #F0D0DC' }}>
+          <Skeleton className="w-20 h-20 rounded-xl flex-shrink-0" />
+          <div className="flex-1 space-y-2">
+            <Skeleton className="h-5 w-3/4 rounded-lg" />
+            <Skeleton className="h-3 w-1/2 rounded-lg" />
+            <Skeleton className="h-5 w-24 rounded-full" />
+          </div>
+        </div>
+        <div className="p-4 space-y-4">
+          <Skeleton className="h-36 w-full rounded-2xl" />
+          <Skeleton className="h-10 w-full rounded-2xl" />
+          <Skeleton className="h-24 w-full rounded-2xl" />
+        </div>
       </div>
     )
   }
@@ -210,12 +263,11 @@ export default function ItemDetailPage() {
 
   return (
     <div className="flex flex-col min-h-full">
-      {/* ── Header ───────────────────────────────────────────────── */}
+      {/* ── Sticky header ─────────────────────────────────────────── */}
       <div
         className="sticky top-0 bg-white z-10 flex items-center gap-2 px-4 py-3"
         style={{ borderBottom: '0.5px solid #F0D0DC' }}
       >
-        {/* Back */}
         <button
           onClick={() => router.back()}
           className="p-1.5 rounded-xl hover:bg-gray-100 transition-colors flex-shrink-0"
@@ -223,7 +275,6 @@ export default function ItemDetailPage() {
           <ArrowLeft className="w-5 h-5 text-gray-700" />
         </button>
 
-        {/* Item switcher pill */}
         <button
           onClick={() => setSwitcherOpen(true)}
           className="flex items-center gap-1 min-w-0 flex-1"
@@ -241,10 +292,8 @@ export default function ItemDetailPage() {
           <ChevronDown className="w-4 h-4 flex-shrink-0" style={{ marginLeft: '4px' }} />
         </button>
 
-        {/* Spacer so edit/delete stay right-aligned */}
         <div className="flex-1" />
 
-        {/* Edit + Delete */}
         <div className="flex items-center gap-1.5 flex-shrink-0">
           <button
             onClick={() => setEditOpen(true)}
@@ -261,85 +310,48 @@ export default function ItemDetailPage() {
         </div>
       </div>
 
-      {/* ── Body ─────────────────────────────────────────────────── */}
-      <div className="p-4 space-y-4 pb-6">
-        {/* Image */}
-        <div className="relative w-full h-52 rounded-2xl overflow-hidden bg-primary-light flex items-center justify-center">
-          {item.image_url ? (
-            <Image src={item.image_url} alt={item.name} fill className="object-contain" sizes="(max-width: 448px) 100vw, 448px" />
-          ) : (
-            <span className="text-7xl" aria-hidden>{item.categories?.icon ?? '📦'}</span>
-          )}
-        </div>
+      {/* ── Compact info row ──────────────────────────────────────── */}
+      <div className="flex items-center gap-3 px-4 py-3"
+        style={{ borderBottom: '0.5px solid #F0D0DC' }}>
 
-        {/* Info card */}
-        <div className="bg-white rounded-2xl p-4" style={{ border: '0.5px solid #F0D0DC' }}>
-          <div className="flex items-start justify-between gap-3">
-            <div className="flex-1 min-w-0">
-              <h2 className="text-xl font-bold text-gray-900">{item.name}</h2>
-              {item.description && <p className="text-sm text-gray-500 mt-1">{item.description}</p>}
+        <label className="relative w-20 h-20 rounded-xl overflow-hidden bg-primary-light flex items-center justify-center flex-shrink-0 cursor-pointer group">
+          {item.image_url ? (
+            <Image src={item.image_url} alt={item.name} fill className="object-contain" sizes="80px" />
+          ) : (
+            <span className="text-3xl">{item.categories?.icon ?? '📦'}</span>
+          )}
+          <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-colors flex items-end justify-end p-1">
+            <div className="bg-white/80 rounded-full p-0.5">
+              <Camera className="w-3 h-3 text-gray-600" />
+            </div>
+          </div>
+          <input type="file" accept="image/*" className="sr-only" onChange={handleImageUpload} />
+        </label>
+
+        <div className="flex-1 min-w-0">
+          <div className="flex items-start justify-between gap-2">
+            <div className="min-w-0">
+              <h2 className="text-lg font-bold text-gray-900 truncate">{item.name}</h2>
+              {item.description && (
+                <p className="text-xs text-gray-400 truncate">{item.description}</p>
+              )}
               {item.categories && (
-                <span
-                  className="inline-flex items-center gap-1 mt-2 px-2.5 py-1 rounded-full text-xs font-semibold text-white"
-                  style={{ backgroundColor: item.categories.color }}
-                >
+                <span className="inline-flex items-center gap-1 mt-1 px-2 py-0.5 rounded-full text-xs font-semibold text-white"
+                  style={{ backgroundColor: item.categories.color }}>
                   {item.categories.icon} {item.categories.name}
                 </span>
               )}
             </div>
             <div className="text-right flex-shrink-0">
-              <span className="text-4xl font-black text-primary">{item.stock}</span>
-              <p className="text-xs text-gray-400 mt-0.5">in stock</p>
+              <span className="text-3xl font-black text-primary">{item.stock}</span>
+              <p className="text-[10px] text-gray-400">in stock</p>
             </div>
           </div>
         </div>
+      </div>
 
-        {/* Carbon Footprint card */}
-        {item.image_url && (
-          <div className="bg-green-50 rounded-2xl p-4" style={{ border: '0.5px solid #BBF7D0' }}>
-            {item.carbon_kg_per_item != null ? (
-              <>
-                <div className="flex items-start justify-between mb-1">
-                  <p className="text-xs font-bold text-green-600 uppercase tracking-wide">🌱 Carbon Footprint</p>
-                  <button
-                    onClick={handleEstimateCarbon}
-                    disabled={estimating}
-                    className="text-[10px] text-green-500 hover:text-green-700"
-                  >
-                    {estimating ? 'Scanning…' : 'Re-scan'}
-                  </button>
-                </div>
-                <div className="flex items-baseline justify-between mt-2">
-                  <div>
-                    <span className="text-3xl font-black text-green-600">{item.carbon_kg_total}</span>
-                    <span className="text-sm text-green-500 ml-1">kg CO₂ saved total</span>
-                  </div>
-                  <div className="text-right">
-                    <span className="text-sm font-semibold text-green-600">{item.carbon_kg_per_item} kg</span>
-                    <p className="text-[10px] text-green-400">per item</p>
-                  </div>
-                </div>
-                <p className="text-[10px] text-green-500 mt-1">Based on {item.stock} in stock</p>
-                {item.carbon_summary && (
-                  <p className="text-xs text-green-700 mt-2 leading-relaxed">{item.carbon_summary}</p>
-                )}
-              </>
-            ) : (
-              <>
-                <p className="text-xs font-bold text-green-600 uppercase tracking-wide mb-2">🌱 Carbon Footprint</p>
-                <button
-                  onClick={handleEstimateCarbon}
-                  disabled={estimating}
-                  className="w-full py-2.5 rounded-xl text-sm font-semibold text-green-700 hover:bg-green-100 transition-colors"
-                  style={{ border: '0.5px solid #86EFAC' }}
-                >
-                  {estimating ? 'Analysing photo…' : '✨ Estimate CO₂ saved'}
-                </button>
-                <p className="text-[10px] text-green-500 text-center mt-1.5">Uses AI to analyse the item photo</p>
-              </>
-            )}
-          </div>
-        )}
+      {/* ── Body ─────────────────────────────────────────────────── */}
+      <div className="p-4 space-y-4 pb-6">
 
         {/* Quick Log */}
         <div className="bg-white rounded-2xl p-4" style={{ border: '0.5px solid #F0D0DC' }}>
@@ -415,6 +427,127 @@ export default function ItemDetailPage() {
           </div>
         </div>
 
+        {/* Carbon Footprint card */}
+        {(item.carbon_kg_per_item != null || item.image_url) && (
+          <div className="bg-green-50 rounded-2xl" style={{ border: '0.5px solid #BBF7D0' }}>
+            {item.carbon_kg_per_item != null ? (
+              editingCarbon ? (
+                <div className="p-4">
+                  <p className="text-xs font-bold text-green-600 uppercase tracking-wide mb-3">🌱 Carbon Footprint</p>
+                  <div className="mb-2">
+                    <label className="text-[11px] font-bold text-green-600 uppercase tracking-wide mb-1 block">
+                      CO₂ per item (kg)
+                    </label>
+                    <input
+                      type="number"
+                      value={editCarbonKg}
+                      onChange={e => setEditCarbonKg(e.target.value)}
+                      step="0.1"
+                      min="0"
+                      className="w-full px-3 py-2 rounded-xl text-sm focus:outline-none focus:ring-1 focus:ring-green-400 bg-white"
+                      style={{ border: '0.5px solid #86EFAC' }}
+                      placeholder="e.g. 24.5"
+                    />
+                  </div>
+                  <div className="mb-3">
+                    <label className="text-[11px] font-bold text-green-600 uppercase tracking-wide mb-1 block">
+                      Notes / summary
+                    </label>
+                    <textarea
+                      value={editCarbonSummary}
+                      onChange={e => setEditCarbonSummary(e.target.value)}
+                      rows={2}
+                      className="w-full px-3 py-2 rounded-xl text-sm focus:outline-none focus:ring-1 focus:ring-green-400 bg-white resize-none"
+                      style={{ border: '0.5px solid #86EFAC' }}
+                      placeholder="Description (optional)"
+                    />
+                  </div>
+                  <div className="flex gap-2">
+                    <button
+                      onClick={() => setEditingCarbon(false)}
+                      className="flex-1 py-2 rounded-xl text-sm text-green-700 bg-white"
+                      style={{ border: '0.5px solid #86EFAC' }}
+                    >
+                      Cancel
+                    </button>
+                    <button
+                      onClick={saveCarbonEdit}
+                      className="flex-1 py-2 rounded-xl text-sm font-semibold text-white bg-green-500 hover:bg-green-600"
+                    >
+                      Save changes
+                    </button>
+                  </div>
+                </div>
+              ) : (
+                <>
+                  {/* Collapsed / header row — always visible, tap to toggle */}
+                  <div
+                    className="flex items-center justify-between cursor-pointer px-4 py-3"
+                    onClick={() => setCarbonExpanded(v => !v)}
+                  >
+                    <div className="flex items-center gap-2">
+                      <span className="text-sm">🌱</span>
+                      <span className="text-sm font-bold text-green-600">
+                        {carbonExpanded ? 'Carbon Footprint' : `${item.carbon_kg_total} kg CO₂ saved`}
+                      </span>
+                    </div>
+                    <ChevronDown className={`w-4 h-4 text-green-500 transition-transform ${carbonExpanded ? 'rotate-180' : ''}`} />
+                  </div>
+
+                  {/* Expanded details */}
+                  {carbonExpanded && (
+                    <div className="px-4 pb-4" style={{ borderTop: '0.5px solid #BBF7D0' }}>
+                      <div className="flex items-baseline justify-between pt-3">
+                        <div>
+                          <span className="text-3xl font-black text-green-600">{item.carbon_kg_total}</span>
+                          <span className="text-sm text-green-500 ml-1">kg CO₂ saved total</span>
+                        </div>
+                        <div className="text-right">
+                          <span className="text-sm font-semibold text-green-600">{item.carbon_kg_per_item} kg</span>
+                          <p className="text-[10px] text-green-400">per item</p>
+                        </div>
+                      </div>
+                      <p className="text-[10px] text-green-500 mt-1">Based on {item.stock} in stock</p>
+                      {item.carbon_summary && (
+                        <p className="text-xs text-green-700 mt-2 leading-relaxed">{item.carbon_summary}</p>
+                      )}
+                      <div className="mt-3 pt-2.5 flex items-center justify-between"
+                        style={{ borderTop: '0.5px solid #BBF7D0' }}>
+                        <button
+                          onClick={startCarbonEdit}
+                          className="text-xs text-green-600 hover:text-green-800 flex items-center gap-1"
+                        >
+                          <Pencil className="w-3 h-3" /> Edit values
+                        </button>
+                        <button
+                          onClick={handleEstimateCarbon}
+                          disabled={estimating}
+                          className="text-xs text-green-600 hover:text-green-800 flex items-center gap-1"
+                        >
+                          <RefreshCw className="w-3 h-3" /> {estimating ? 'Scanning…' : 'Re-scan'}
+                        </button>
+                      </div>
+                    </div>
+                  )}
+                </>
+              )
+            ) : (
+              <div className="p-4">
+                <p className="text-xs font-bold text-green-600 uppercase tracking-wide mb-3">🌱 Carbon Footprint</p>
+                <button
+                  onClick={handleEstimateCarbon}
+                  disabled={estimating}
+                  className="w-full py-2.5 rounded-xl text-sm font-semibold text-green-700 hover:bg-green-100 transition-colors"
+                  style={{ border: '0.5px solid #86EFAC' }}
+                >
+                  {estimating ? 'Analysing photo…' : '✨ Estimate CO₂ saved'}
+                </button>
+                <p className="text-[10px] text-green-500 text-center mt-1.5">Uses AI to analyse the item photo</p>
+              </div>
+            )}
+          </div>
+        )}
+
         {/* Stock History */}
         <div>
           <h3 className="text-xs font-bold text-gray-500 uppercase tracking-wide mb-3">
@@ -432,7 +565,6 @@ export default function ItemDetailPage() {
                     className="flex items-center gap-3 bg-white rounded-xl p-3"
                     style={{ border: '0.5px solid #F0D0DC' }}
                   >
-                    {/* Icon */}
                     <div className={`w-9 h-9 rounded-full flex items-center justify-center flex-shrink-0 ${
                       isCorrection ? 'bg-amber-100'
                       : log.direction === 'in' ? 'bg-green-100'
@@ -445,7 +577,6 @@ export default function ItemDetailPage() {
                         : <TrendingDown className="w-4 h-4 text-red-500" />}
                     </div>
 
-                    {/* Content */}
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-1.5 flex-wrap">
                         <span className={`text-sm font-bold ${
@@ -497,18 +628,15 @@ export default function ItemDetailPage() {
             className="fixed bottom-0 left-0 right-0 z-40 max-w-md mx-auto bg-white rounded-t-2xl shadow-2xl flex flex-col"
             style={{ maxHeight: '72vh', animation: 'slideUp 0.25s ease-out' }}
           >
-            {/* Drag handle */}
             <div className="flex justify-center pt-3 pb-1 flex-shrink-0">
               <div className="w-10 h-1 bg-gray-200 rounded-full" />
             </div>
 
-            {/* Sheet header */}
             <div className="px-5 pt-2 pb-3 flex-shrink-0">
               <p className="text-base font-bold text-gray-900">{categoryLabel}</p>
               <p className="text-xs text-gray-400 mt-0.5">{siblings.length} item{siblings.length !== 1 ? 's' : ''}</p>
             </div>
 
-            {/* Search (only when > 6 siblings) */}
             {showSearch && (
               <div className="px-5 pb-3 flex-shrink-0">
                 <div className="relative">
@@ -526,10 +654,8 @@ export default function ItemDetailPage() {
               </div>
             )}
 
-            {/* Divider */}
             <div style={{ borderTop: '0.5px solid #F0D0DC' }} />
 
-            {/* Item list */}
             <div className="overflow-y-auto flex-1">
               {filteredSiblings.length === 0 ? (
                 <p className="text-sm text-gray-400 text-center py-10">No items found</p>
@@ -548,23 +674,14 @@ export default function ItemDetailPage() {
                         borderBottom: idx < filteredSiblings.length - 1 ? '0.5px solid #F5F5F5' : undefined,
                       }}
                     >
-                      {/* Selected dot */}
                       <div className="w-5 flex-shrink-0 flex items-center justify-center">
-                        {isCurrent && (
-                          <div className="w-2 h-2 rounded-full bg-primary" />
-                        )}
+                        {isCurrent && <div className="w-2 h-2 rounded-full bg-primary" />}
                       </div>
-
-                      {/* Name */}
-                      <span
-                        className={`flex-1 text-sm truncate ${
-                          isCurrent ? 'font-bold text-gray-900' : 'font-medium text-gray-700'
-                        }`}
-                      >
+                      <span className={`flex-1 text-sm truncate ${
+                        isCurrent ? 'font-bold text-gray-900' : 'font-medium text-gray-700'
+                      }`}>
                         {sibling.name}
                       </span>
-
-                      {/* Stock */}
                       <span className="text-sm font-semibold text-gray-400 flex-shrink-0">
                         {sibling.stock}
                       </span>
