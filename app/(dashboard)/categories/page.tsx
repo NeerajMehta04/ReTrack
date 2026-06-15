@@ -17,6 +17,25 @@ const PRESET_COLORS = [
   '#EF4444', '#EC4899', '#6B7280', '#D4537E',
 ]
 
+const EMOJIS = [
+  // Furniture
+  '🪑','🛋️','🛏️','🚪','🪞','🪟','🖼️','🪣',
+  // Kitchen
+  '🍽️','🥣','🥛','☕','🍳','🔪','🫙','🧊',
+  // Office / tech
+  '💼','🖥️','⌨️','🖨️','📱','💡','🔌','📎',
+  // Tools / storage
+  '🧰','📦','🗃️','🗄️','📋','🔧','🪛','🔑',
+  // Transport
+  '🚲','🛴','🛒','🚗',
+  // Clothes / textiles
+  '👕','👖','🧥','👟','🧤','🎒','👜','🧺',
+  // Nature / plants
+  '🌱','🪴','🌿','🍀','🌸','🌻','🍁','🪨',
+  // Misc
+  '⭐','❤️','✅','🏷️','🎁','♻️','🔖','📌',
+]
+
 export default function CategoriesPage() {
   const [categories, setCategories] = useState<CategoryWithCount[]>([])
   const [loading, setLoading] = useState(true)
@@ -26,9 +45,10 @@ export default function CategoriesPage() {
   // Create sheet
   const [createOpen, setCreateOpen] = useState(false)
   const [newName, setNewName] = useState('')
-  const [newIcon, setNewIcon] = useState('')
+  const [newIcon, setNewIcon] = useState('📦')
   const [newColor, setNewColor] = useState(PRESET_COLORS[0])
   const [creating, setCreating] = useState(false)
+  const [emojiPickerOpen, setEmojiPickerOpen] = useState(false)
 
   // Action / delete sheets
   const [actionSheetCat, setActionSheetCat] = useState<CategoryWithCount | null>(null)
@@ -63,8 +83,9 @@ export default function CategoriesPage() {
 
   function openCreate() {
     setNewName('')
-    setNewIcon('')
+    setNewIcon('📦')
     setNewColor(PRESET_COLORS[0])
+    setEmojiPickerOpen(false)
     setCreateOpen(true)
   }
 
@@ -260,15 +281,30 @@ export default function CategoriesPage() {
                 <label className="block text-[11px] font-bold text-gray-500 uppercase tracking-wide mb-1.5">
                   Emoji Icon
                 </label>
-                <input
-                  type="text"
-                  value={newIcon}
-                  onChange={e => setNewIcon(e.target.value)}
-                  placeholder="📦"
-                  maxLength={2}
-                  className="w-20 px-3 py-2.5 rounded-xl text-sm text-center focus:outline-none focus:ring-1 focus:ring-primary"
+                <button
+                  type="button"
+                  onClick={() => setEmojiPickerOpen(v => !v)}
+                  className="w-14 h-14 rounded-xl bg-gray-50 text-3xl flex items-center justify-center transition-colors hover:bg-gray-100"
                   style={{ border: '0.5px solid #E5E7EB' }}
-                />
+                >
+                  {newIcon}
+                </button>
+                {emojiPickerOpen && (
+                  <div className="grid grid-cols-8 gap-1 mt-2 p-2 bg-gray-50 rounded-xl max-h-48 overflow-y-auto">
+                    {EMOJIS.map(e => (
+                      <button
+                        key={e}
+                        type="button"
+                        onClick={() => { setNewIcon(e); setEmojiPickerOpen(false) }}
+                        className={`text-2xl p-1 rounded-lg flex items-center justify-center transition-colors hover:bg-white ${
+                          newIcon === e ? 'bg-white ring-2 ring-primary' : ''
+                        }`}
+                      >
+                        {e}
+                      </button>
+                    ))}
+                  </div>
+                )}
               </div>
 
               {/* Colour swatches */}
