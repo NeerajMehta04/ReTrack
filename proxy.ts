@@ -23,19 +23,8 @@ export async function proxy(request: NextRequest) {
     }
   )
 
-  const {
-    data: { user },
-  } = await supabase.auth.getUser()
-
-  const isLogin = request.nextUrl.pathname === '/login'
-
-  if (!user && !isLogin) {
-    const url = request.nextUrl.clone()
-    url.pathname = '/login'
-    return NextResponse.redirect(url)
-  }
-
-  if (user && isLogin) {
+  // Redirect bare / to /categories
+  if (request.nextUrl.pathname === '/') {
     const url = request.nextUrl.clone()
     url.pathname = '/categories'
     return NextResponse.redirect(url)
