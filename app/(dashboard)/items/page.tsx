@@ -162,6 +162,9 @@ function ItemsList() {
                 <span className="text-sm font-bold text-gray-800 min-w-[24px] text-right">
                   {item.stock}
                 </span>
+                {item.carbon_kg_per_item && (
+                  <span className="text-base" title={`${item.carbon_kg_total} kg CO₂ saved`}>🌱</span>
+                )}
                 <ShoppingCart className="w-4 h-4 text-gray-300" />
                 <ChevronRight className="w-3.5 h-3.5 text-gray-300" />
               </div>

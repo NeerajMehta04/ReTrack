@@ -2,14 +2,14 @@
 
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
-import { Package, Grid3X3, ClipboardList, Users, Trash2 } from 'lucide-react'
+import { Package, Grid3X3, ClipboardList, Leaf, Trash2 } from 'lucide-react'
 
 const TABS = [
   { href: '/items',      label: 'Items',      Icon: Package },
   { href: '/categories', label: 'Categories', Icon: Grid3X3 },
   { href: '/logs',       label: 'Logs',       Icon: ClipboardList },
-  { href: '/groups',     label: 'Groups',     Icon: Users },
-  { href: '/bin',        label: 'Bin',         Icon: Trash2 },
+  { href: '/carbon',     label: 'Carbon',     Icon: Leaf },
+  { href: '/bin',        label: 'Bin',        Icon: Trash2 },
 ] as const
 
 export default function BottomNav() {

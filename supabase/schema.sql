@@ -19,9 +19,12 @@ CREATE TABLE IF NOT EXISTS public.items (
   description TEXT,
   category_id UUID        REFERENCES public.categories(id) ON DELETE SET NULL,
   stock       INTEGER     NOT NULL DEFAULT 0,
-  image_url   TEXT,
-  created_at  TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-  deleted_at  TIMESTAMPTZ
+  image_url          TEXT,
+  created_at         TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  deleted_at         TIMESTAMPTZ,
+  carbon_kg_per_item NUMERIC,
+  carbon_kg_total    NUMERIC,
+  carbon_summary     TEXT
 );
 
 CREATE TABLE IF NOT EXISTS public.groups (

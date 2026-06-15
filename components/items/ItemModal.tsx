@@ -218,6 +218,12 @@ export default function ItemModal({ open, onClose, categories, item, onSaved }: 
     const { computedStock, newStock, imageUrl } = pendingSave
     const delta = newStock - computedStock
 
+    if (item.carbon_kg_per_item) {
+      const newTotal = +(item.carbon_kg_per_item * newStock).toFixed(1)
+      await supabase.from('items')
+        .update({ carbon_kg_total: newTotal }).eq('id', item.id)
+    }
+
     await doEditSave(
       imageUrl,
       computedStock, // reset to what logs say, then trigger adjusts
@@ -278,7 +284,7 @@ export default function ItemModal({ open, onClose, categories, item, onSaved }: 
                     alt="Preview"
                     width={400}
                     height={144}
-                    className="object-cover w-full h-full"
+                    className="w-full h-full object-contain"
                     unoptimized={imagePreview.startsWith('blob:')}
                   />
                 ) : (

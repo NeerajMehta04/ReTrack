@@ -40,6 +40,7 @@ export default function ItemDetailPage() {
   const [comment, setComment] = useState('')
   const [condition, setCondition] = useState<'good' | 'fair' | 'poor' | ''>('')
   const [logging, setLogging] = useState(false)
+  const [estimating, setEstimating] = useState(false)
 
   const refreshData = useCallback(async () => {
     const [itemRes, logsRes] = await Promise.all([
@@ -106,6 +107,16 @@ export default function ItemDetailPage() {
       })
       if (error) throw error
       await refreshData()
+      if (item?.carbon_kg_per_item) {
+        const { data: fresh } = await supabase
+          .from('items').select('stock').eq('id', id).single()
+        if (fresh) {
+          const newTotal = +(item.carbon_kg_per_item * fresh.stock).toFixed(1)
+          await supabase.from('items')
+            .update({ carbon_kg_total: newTotal }).eq('id', id)
+          setItem(prev => prev ? { ...prev, carbon_kg_total: newTotal, stock: fresh.stock } : prev)
+        }
+      }
       // Also update the sibling's stock count so the switcher stays accurate
       setSiblings(prev => prev.map(s => s.id === id
         ? { ...s, stock: s.stock + (direction === 'in' ? qty : -qty) }
@@ -134,6 +145,42 @@ export default function ItemDetailPage() {
       toast.error(err instanceof Error ? err.message : 'Delete failed')
       setDeleting(false)
       setConfirmDelete(false)
+    }
+  }
+
+  async function handleEstimateCarbon() {
+    if (!item?.image_url) return
+    setEstimating(true)
+    try {
+      const res = await fetch('/api/estimate-carbon', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          imageUrl: item.image_url,
+          itemName: item.name,
+        })
+      })
+      const data = await res.json()
+      const carbonTotal = +(data.carbon_kg_per_item * item.stock).toFixed(1)
+
+      await supabase.from('items').update({
+        carbon_kg_per_item: data.carbon_kg_per_item,
+        carbon_kg_total: carbonTotal,
+        carbon_summary: data.summary
+      }).eq('id', item.id)
+
+      setItem(prev => prev ? {
+        ...prev,
+        carbon_kg_per_item: data.carbon_kg_per_item,
+        carbon_kg_total: carbonTotal,
+        carbon_summary: data.summary
+      } : prev)
+
+      toast.success(`~${carbonTotal} kg CO₂ saved!`)
+    } catch {
+      toast.error('Estimation failed — try again')
+    } finally {
+      setEstimating(false)
     }
   }
 
@@ -219,7 +266,7 @@ export default function ItemDetailPage() {
         {/* Image */}
         <div className="relative w-full h-52 rounded-2xl overflow-hidden bg-primary-light flex items-center justify-center">
           {item.image_url ? (
-            <Image src={item.image_url} alt={item.name} fill className="object-cover" sizes="(max-width: 448px) 100vw, 448px" />
+            <Image src={item.image_url} alt={item.name} fill className="object-contain" sizes="(max-width: 448px) 100vw, 448px" />
           ) : (
             <span className="text-7xl" aria-hidden>{item.categories?.icon ?? '📦'}</span>
           )}
@@ -246,6 +293,53 @@ export default function ItemDetailPage() {
             </div>
           </div>
         </div>
+
+        {/* Carbon Footprint card */}
+        {item.image_url && (
+          <div className="bg-green-50 rounded-2xl p-4" style={{ border: '0.5px solid #BBF7D0' }}>
+            {item.carbon_kg_per_item != null ? (
+              <>
+                <div className="flex items-start justify-between mb-1">
+                  <p className="text-xs font-bold text-green-600 uppercase tracking-wide">🌱 Carbon Footprint</p>
+                  <button
+                    onClick={handleEstimateCarbon}
+                    disabled={estimating}
+                    className="text-[10px] text-green-500 hover:text-green-700"
+                  >
+                    {estimating ? 'Scanning…' : 'Re-scan'}
+                  </button>
+                </div>
+                <div className="flex items-baseline justify-between mt-2">
+                  <div>
+                    <span className="text-3xl font-black text-green-600">{item.carbon_kg_total}</span>
+                    <span className="text-sm text-green-500 ml-1">kg CO₂ saved total</span>
+                  </div>
+                  <div className="text-right">
+                    <span className="text-sm font-semibold text-green-600">{item.carbon_kg_per_item} kg</span>
+                    <p className="text-[10px] text-green-400">per item</p>
+                  </div>
+                </div>
+                <p className="text-[10px] text-green-500 mt-1">Based on {item.stock} in stock</p>
+                {item.carbon_summary && (
+                  <p className="text-xs text-green-700 mt-2 leading-relaxed">{item.carbon_summary}</p>
+                )}
+              </>
+            ) : (
+              <>
+                <p className="text-xs font-bold text-green-600 uppercase tracking-wide mb-2">🌱 Carbon Footprint</p>
+                <button
+                  onClick={handleEstimateCarbon}
+                  disabled={estimating}
+                  className="w-full py-2.5 rounded-xl text-sm font-semibold text-green-700 hover:bg-green-100 transition-colors"
+                  style={{ border: '0.5px solid #86EFAC' }}
+                >
+                  {estimating ? 'Analysing photo…' : '✨ Estimate CO₂ saved'}
+                </button>
+                <p className="text-[10px] text-green-500 text-center mt-1.5">Uses AI to analyse the item photo</p>
+              </>
+            )}
+          </div>
+        )}
 
         {/* Quick Log */}
         <div className="bg-white rounded-2xl p-4" style={{ border: '0.5px solid #F0D0DC' }}>
