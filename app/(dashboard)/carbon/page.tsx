@@ -39,13 +39,14 @@ export default function CarbonPage() {
   ] : []
 
   function handleExport() {
-    const rows = [
+    type Row = Record<string, string | number | undefined>
+    const rows: Row[] = [
       ...tracked.map(item => ({
         item: item.name,
         category: item.categories?.name ?? 'Uncategorised',
         stock: item.stock,
-        carbon_kg_per_item: item.carbon_kg_per_item ?? '',
-        carbon_kg_total: item.carbon_kg_total ?? '',
+        carbon_kg_per_item: item.carbon_kg_per_item ?? undefined,
+        carbon_kg_total: item.carbon_kg_total ?? undefined,
         summary: item.carbon_summary ?? '',
         status: 'assessed',
       })),
@@ -53,8 +54,8 @@ export default function CarbonPage() {
         item: item.name,
         category: item.categories?.name ?? 'Uncategorised',
         stock: item.stock,
-        carbon_kg_per_item: '',
-        carbon_kg_total: '',
+        carbon_kg_per_item: undefined,
+        carbon_kg_total: undefined,
         summary: '',
         status: 'not assessed',
       })),
@@ -64,19 +65,19 @@ export default function CarbonPage() {
       item: 'TOTAL',
       category: '',
       stock: tracked.reduce((s, i) => s + i.stock, 0),
-      carbon_kg_per_item: '',
+      carbon_kg_per_item: undefined,
       carbon_kg_total: totalCarbon,
       summary: `${tracked.length} items assessed, ${untracked.length} not yet assessed`,
       status: '',
     })
 
     if (totalCarbon > 0) {
-      rows.push({ item: '', category: '', stock: '', carbon_kg_per_item: '', carbon_kg_total: '', summary: '', status: '' })
-      rows.push({ item: 'CO2 EQUIVALENTS', category: '', stock: '', carbon_kg_per_item: '', carbon_kg_total: '', summary: '', status: '' })
-      rows.push({ item: 'Oslo–London trips', category: '', stock: '', carbon_kg_per_item: '', carbon_kg_total: (totalCarbon / 120).toFixed(1), summary: 'times', status: '' })
-      rows.push({ item: 'Driving distance', category: '', stock: '', carbon_kg_per_item: '', carbon_kg_total: Math.round(totalCarbon / 0.175), summary: 'km not driven', status: '' })
-      rows.push({ item: 'Trees planted', category: '', stock: '', carbon_kg_per_item: '', carbon_kg_total: Math.round(totalCarbon / 20), summary: 'annual CO2 absorption', status: '' })
-      rows.push({ item: 'Phone charges', category: '', stock: '', carbon_kg_per_item: '', carbon_kg_total: Math.round(totalCarbon / 0.005), summary: 'full charges', status: '' })
+      rows.push({ item: '', category: '', stock: undefined, carbon_kg_per_item: undefined, carbon_kg_total: undefined, summary: '', status: '' })
+      rows.push({ item: 'CO2 EQUIVALENTS', category: '', stock: undefined, carbon_kg_per_item: undefined, carbon_kg_total: undefined, summary: '', status: '' })
+      rows.push({ item: 'Oslo–London trips', category: '', stock: undefined, carbon_kg_per_item: undefined, carbon_kg_total: (totalCarbon / 120).toFixed(1), summary: 'times', status: '' })
+      rows.push({ item: 'Driving distance', category: '', stock: undefined, carbon_kg_per_item: undefined, carbon_kg_total: Math.round(totalCarbon / 0.175), summary: 'km not driven', status: '' })
+      rows.push({ item: 'Trees planted', category: '', stock: undefined, carbon_kg_per_item: undefined, carbon_kg_total: Math.round(totalCarbon / 20), summary: 'annual CO2 absorption', status: '' })
+      rows.push({ item: 'Phone charges', category: '', stock: undefined, carbon_kg_per_item: undefined, carbon_kg_total: Math.round(totalCarbon / 0.005), summary: 'full charges', status: '' })
     }
 
     downloadCSV(rows, `carbon_impact_${new Date().toISOString().split('T')[0]}.csv`)
