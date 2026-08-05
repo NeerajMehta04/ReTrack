@@ -66,9 +66,9 @@ export default function ItemModal({ open, onClose, categories, item, onSaved }: 
   }
 
   async function uploadImage(itemId: string, file: File): Promise<string> {
-    const ext = file.name.split('.').pop()
-    const path = `${itemId}.${ext}`
-    const { error } = await supabase.storage.from('items').upload(path, file, { upsert: true })
+    const ext = file.name.split('.').pop()?.toLowerCase() || 'jpg'
+    const path = `${itemId}/${crypto.randomUUID()}.${ext}`
+    const { error } = await supabase.storage.from('items').upload(path, file)
     if (error) throw error
     return supabase.storage.from('items').getPublicUrl(path).data.publicUrl
   }

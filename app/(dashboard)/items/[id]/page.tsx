@@ -154,9 +154,9 @@ export default function ItemDetailPage() {
     const file = e.target.files?.[0]
     if (!file || !item) return
     try {
-      const ext = file.name.split('.').pop()
-      const path = `${item.id}.${ext}`
-      const { error } = await supabase.storage.from('items').upload(path, file, { upsert: true })
+      const ext = file.name.split('.').pop()?.toLowerCase() || 'jpg'
+      const path = `${item.id}/${crypto.randomUUID()}.${ext}`
+      const { error } = await supabase.storage.from('items').upload(path, file)
       if (error) throw error
       const imageUrl = supabase.storage.from('items').getPublicUrl(path).data.publicUrl
       await supabase.from('items').update({ image_url: imageUrl }).eq('id', item.id)
@@ -177,6 +177,7 @@ export default function ItemDetailPage() {
         body: JSON.stringify({ imageUrl: item.image_url, itemName: item.name })
       })
       const data = await res.json()
+      if (!res.ok) throw new Error(data.error || 'Estimation failed')
       const carbonTotal = +(data.carbon_kg_per_item * item.stock).toFixed(1)
 
       await supabase.from('items').update({
