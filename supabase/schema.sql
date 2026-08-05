@@ -93,9 +93,9 @@ CREATE POLICY "bin_read_categories"  ON public.categories FOR SELECT TO authenti
 CREATE POLICY "bin_modify_categories" ON public.categories FOR UPDATE TO authenticated USING (deleted_at IS NOT NULL) WITH CHECK (true);
 CREATE POLICY "bin_delete_categories" ON public.categories FOR DELETE TO authenticated USING (deleted_at IS NOT NULL);
 
-CREATE POLICY "storage_items_read"   ON storage.objects FOR SELECT TO authenticated USING (bucket_id = 'items');
-CREATE POLICY "storage_items_insert" ON storage.objects FOR INSERT TO authenticated WITH CHECK (bucket_id = 'items');
-CREATE POLICY "storage_items_update" ON storage.objects FOR UPDATE TO authenticated USING (bucket_id = 'items');
+CREATE POLICY "storage_items_read"   ON storage.objects FOR SELECT TO anon, authenticated USING (bucket_id = 'items');
+CREATE POLICY "storage_items_insert" ON storage.objects FOR INSERT TO anon, authenticated WITH CHECK (bucket_id = 'items');
+CREATE POLICY "storage_items_update" ON storage.objects FOR UPDATE TO anon, authenticated USING (bucket_id = 'items');
 
 -- ── Seed: Categories ─────────────────────────────────────────
 
