@@ -35,11 +35,8 @@ export async function proxy(request: NextRequest) {
     return NextResponse.redirect(url)
   }
 
-  // Protected routes require authentication
-  const protectedPrefixes = ['/items', '/categories', '/logs', '/carbon', '/bin', '/groups', '/org']
-  const isProtected = protectedPrefixes.some(p => pathname.startsWith(p))
-
-  if (isProtected && !user) {
+  // Only org routes require authentication (demo is public)
+  if (pathname.startsWith('/org') && !user) {
     const url = request.nextUrl.clone()
     url.pathname = '/login'
     return NextResponse.redirect(url)
