@@ -26,9 +26,12 @@ export default function ChooseOrgPage() {
         .eq('email', user.email)
 
       const list: OrgWithRole[] = (data ?? [])
-        .map((row: { role: 'admin' | 'member'; organizations: Organization | null }) =>
-          row.organizations ? { ...row.organizations, role: row.role } : null
-        )
+        .map((row: { role: 'admin' | 'member'; organizations: unknown }) => {
+          const org = Array.isArray(row.organizations)
+            ? (row.organizations[0] as Organization | undefined) ?? null
+            : (row.organizations as Organization | null)
+          return org ? { ...org, role: row.role } : null
+        })
         .filter(Boolean) as OrgWithRole[]
 
       setOrgs(list)
