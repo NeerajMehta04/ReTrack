@@ -45,6 +45,11 @@ ALTER TABLE public.organizations ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.org_members   ENABLE ROW LEVEL SECURITY;
 
 -- organizations: members can read; owner can update/delete
+DROP POLICY IF EXISTS "org_read"   ON public.organizations;
+DROP POLICY IF EXISTS "org_insert" ON public.organizations;
+DROP POLICY IF EXISTS "org_update" ON public.organizations;
+DROP POLICY IF EXISTS "org_delete" ON public.organizations;
+
 CREATE POLICY "org_read" ON public.organizations
   FOR SELECT TO authenticated
   USING (
@@ -69,6 +74,10 @@ CREATE POLICY "org_delete" ON public.organizations
   USING (owner_id = auth.uid());
 
 -- org_members: admins can insert/delete; any member can read their org's rows
+DROP POLICY IF EXISTS "org_members_read"   ON public.org_members;
+DROP POLICY IF EXISTS "org_members_insert" ON public.org_members;
+DROP POLICY IF EXISTS "org_members_delete" ON public.org_members;
+
 CREATE POLICY "org_members_read" ON public.org_members
   FOR SELECT TO authenticated
   USING (
@@ -111,6 +120,7 @@ CREATE POLICY "org_members_delete" ON public.org_members
 
 -- categories
 DROP POLICY IF EXISTS "auth_all_categories" ON public.categories;
+DROP POLICY IF EXISTS "scoped_categories"   ON public.categories;
 CREATE POLICY "scoped_categories" ON public.categories
   FOR ALL TO authenticated
   USING (
@@ -130,6 +140,7 @@ CREATE POLICY "scoped_categories" ON public.categories
 
 -- items
 DROP POLICY IF EXISTS "auth_all_items" ON public.items;
+DROP POLICY IF EXISTS "scoped_items"   ON public.items;
 CREATE POLICY "scoped_items" ON public.items
   FOR ALL TO authenticated
   USING (
@@ -149,6 +160,7 @@ CREATE POLICY "scoped_items" ON public.items
 
 -- groups
 DROP POLICY IF EXISTS "auth_all_groups" ON public.groups;
+DROP POLICY IF EXISTS "scoped_groups"   ON public.groups;
 CREATE POLICY "scoped_groups" ON public.groups
   FOR ALL TO authenticated
   USING (
@@ -168,6 +180,7 @@ CREATE POLICY "scoped_groups" ON public.groups
 
 -- logs
 DROP POLICY IF EXISTS "auth_all_logs" ON public.logs;
+DROP POLICY IF EXISTS "scoped_logs"   ON public.logs;
 CREATE POLICY "scoped_logs" ON public.logs
   FOR ALL TO authenticated
   USING (
