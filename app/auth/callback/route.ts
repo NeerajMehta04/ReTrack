@@ -5,9 +5,19 @@ import { NextResponse, type NextRequest } from 'next/server'
 export async function GET(request: NextRequest) {
   const { searchParams } = new URL(request.url)
   const code = searchParams.get('code')
+  const errorCode = searchParams.get('error_code')
+  const errorParam = searchParams.get('error')
+
+  if (errorParam || errorCode) {
+    const loginUrl = new URL('/login', request.url)
+    loginUrl.searchParams.set('error', errorCode ?? errorParam ?? 'auth_error')
+    return NextResponse.redirect(loginUrl)
+  }
 
   if (!code) {
-    return NextResponse.redirect(new URL('/login', request.url))
+    const loginUrl = new URL('/login', request.url)
+    loginUrl.searchParams.set('error', 'no_code')
+    return NextResponse.redirect(loginUrl)
   }
 
   const cookieStore = await cookies()
@@ -31,7 +41,9 @@ export async function GET(request: NextRequest) {
 
   const { error } = await supabase.auth.exchangeCodeForSession(code)
   if (error) {
-    return NextResponse.redirect(new URL('/login', request.url))
+    const loginUrl = new URL('/login', request.url)
+    loginUrl.searchParams.set('error', 'otp_expired')
+    return NextResponse.redirect(loginUrl)
   }
 
   const { data: { user } } = await supabase.auth.getUser()
