@@ -13,6 +13,7 @@ interface Props {
   categories: Category[]
   item?: Item | null
   onSaved: (item: Item, logsRefreshed?: boolean) => void
+  orgId?: string | null
 }
 
 interface PendingSave {
@@ -21,7 +22,7 @@ interface PendingSave {
   imageUrl: string | null
 }
 
-export default function ItemModal({ open, onClose, categories, item, onSaved }: Props) {
+export default function ItemModal({ open, onClose, categories, item, onSaved, orgId }: Props) {
   const isEdit = !!item
   const [name, setName] = useState('')
   const [description, setDescription] = useState('')
@@ -149,6 +150,7 @@ export default function ItemModal({ open, onClose, categories, item, onSaved }: 
             description: description.trim() || null,
             category_id: categoryId || null,
             stock: Math.max(0, parseInt(stock) || 0),
+            ...(orgId ? { org_id: orgId } : {}),
           })
           .select('*, categories(*)')
           .single()

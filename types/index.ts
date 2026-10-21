@@ -46,3 +46,19 @@ export interface GroupStats extends Group {
   items_given: number
   total_movements: number
 }
+
+export interface Organization {
+  id: string
+  name: string
+  slug: string
+  owner_id: string
+  created_at: string
+}
+
+export interface OrgMember {
+  id: string
+  org_id: string
+  email: string
+  role: 'admin' | 'member'
+  added_at: string
+}

@@ -55,7 +55,10 @@ function ItemsList() {
         style={{ borderBottom: '0.5px solid #F0D0DC' }}
       >
         <div className="flex items-center justify-between mb-3">
-          <h1 className="text-lg font-bold text-gray-900">Inventory</h1>
+          <div>
+            <h1 className="text-lg font-bold text-gray-900">Inventory</h1>
+            <p className="text-[10px] text-gray-400 mt-0.5">Demo workspace</p>
+          </div>
           <button
             onClick={() => setModalOpen(true)}
             className="w-8 h-8 rounded-full bg-primary flex items-center justify-center shadow-sm shadow-primary/20 hover:bg-primary-dark active:scale-95 transition-all"
@@ -64,6 +67,10 @@ function ItemsList() {
             <Plus className="w-4 h-4 text-white" strokeWidth={2.5} />
           </button>
         </div>
+        <Link href="/org/new" className="flex items-center justify-between w-full px-3 py-2 mb-3 rounded-xl text-xs font-medium text-primary bg-primary-light hover:bg-pink-100 transition-colors" style={{ border: '0.5px solid #F0D0DC' }}>
+          <span>Create a private workspace for your organisation</span>
+          <ChevronRight className="w-3.5 h-3.5 flex-shrink-0 ml-1" />
+        </Link>
 
         <div className="relative">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" />

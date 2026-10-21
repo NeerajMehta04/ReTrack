@@ -12,12 +12,13 @@ interface Props {
   items: Item[]
   groups: Group[]
   onSaved: () => void
+  orgId?: string | null
 }
 
 type Direction = 'in' | 'out'
 type Condition = 'good' | 'fair' | 'poor' | ''
 
-export default function LogModal({ open, onClose, items, groups, onSaved }: Props) {
+export default function LogModal({ open, onClose, items, groups, onSaved, orgId }: Props) {
   const [direction, setDirection] = useState<Direction>('in')
   const [itemId, setItemId] = useState('')
   const [amount, setAmount] = useState('')
@@ -65,6 +66,7 @@ export default function LogModal({ open, onClose, items, groups, onSaved }: Prop
         group_id: groupId || null,
         condition: condition || null,
         comment: comment.trim() || null,
+        ...(orgId ? { org_id: orgId } : {}),
       })
       if (error) throw error
 

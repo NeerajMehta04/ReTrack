@@ -1,0 +1,53 @@
+export const dynamic = 'force-dynamic'
+
+import { redirect } from 'next/navigation'
+import { createClient } from '@/lib/supabase/server'
+import { OrgContext } from '@/lib/org-context'
+import BottomNav from '@/components/BottomNav'
+import Toaster from '@/components/Toaster'
+import type { Organization } from '@/types'
+
+interface Props {
+  children: React.ReactNode
+  params: Promise<{ slug: string }>
+}
+
+export default async function OrgLayout({ children, params }: Props) {
+  const { slug } = await params
+  const supabase = await createClient()
+
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) redirect('/login')
+
+  // Load the org
+  const { data: org } = await supabase
+    .from('organizations')
+    .select('*')
+    .eq('slug', slug)
+    .single()
+
+  if (!org) redirect('/items')
+
+  // Check the user is a member
+  const { data: membership } = await supabase
+    .from('org_members')
+    .select('role')
+    .eq('org_id', org.id)
+    .eq('email', user.email!)
+    .single()
+
+  if (!membership) redirect('/items')
+
+  const isAdmin = membership.role === 'admin' || org.owner_id === user.id
+  const basePath = `/org/${slug}`
+
+  return (
+    <OrgContext.Provider value={{ org: org as Organization, isAdmin }}>
+      <div className="relative min-h-screen bg-white max-w-md mx-auto" style={{ boxShadow: '0 0 0 0.5px #F0D0DC' }}>
+        <main className="pb-16 min-h-screen">{children}</main>
+        <BottomNav basePath={basePath} showSettings={isAdmin} />
+        <Toaster />
+      </div>
+    </OrgContext.Provider>
+  )
+}

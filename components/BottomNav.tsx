@@ -2,18 +2,28 @@
 
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
-import { Package, Grid3X3, ClipboardList, Leaf, Trash2 } from 'lucide-react'
+import { Package, Grid3X3, ClipboardList, Leaf, Trash2, Settings } from 'lucide-react'
 
-const TABS = [
-  { href: '/items',      label: 'Items',      Icon: Package },
-  { href: '/categories', label: 'Categories', Icon: Grid3X3 },
-  { href: '/logs',       label: 'Logs',       Icon: ClipboardList },
-  { href: '/carbon',     label: 'Carbon',     Icon: Leaf },
-  { href: '/bin',        label: 'Bin',        Icon: Trash2 },
-] as const
+const BASE_TABS = [
+  { path: '/items',      label: 'Items',      Icon: Package },
+  { path: '/categories', label: 'Categories', Icon: Grid3X3 },
+  { path: '/logs',       label: 'Logs',       Icon: ClipboardList },
+  { path: '/carbon',     label: 'Carbon',     Icon: Leaf },
+  { path: '/bin',        label: 'Bin',        Icon: Trash2 },
+]
 
-export default function BottomNav() {
+interface Props {
+  basePath?: string
+  showSettings?: boolean
+}
+
+export default function BottomNav({ basePath = '', showSettings = false }: Props) {
   const pathname = usePathname()
+
+  const tabs = [
+    ...BASE_TABS.map(t => ({ ...t, href: basePath + t.path })),
+    ...(showSettings ? [{ path: '/settings', href: basePath + '/settings', label: 'Settings', Icon: Settings }] : []),
+  ]
 
   return (
     <nav
@@ -21,7 +31,7 @@ export default function BottomNav() {
       style={{ borderTop: '0.5px solid #F0D0DC' }}
     >
       <div className="flex pb-safe">
-        {TABS.map(({ href, label, Icon }) => {
+        {tabs.map(({ href, label, Icon }) => {
           const active = pathname.startsWith(href)
           return (
             <Link

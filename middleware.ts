@@ -1,7 +1,7 @@
 import { createServerClient } from '@supabase/ssr'
 import { NextResponse, type NextRequest } from 'next/server'
 
-export async function proxy(request: NextRequest) {
+export async function middleware(request: NextRequest) {
   let supabaseResponse = NextResponse.next({ request })
 
   const supabase = createServerClient(
@@ -23,10 +23,32 @@ export async function proxy(request: NextRequest) {
     }
   )
 
-  // Redirect bare / to /categories
-  if (request.nextUrl.pathname === '/') {
+  // Refresh session on every request
+  const { data: { user } } = await supabase.auth.getUser()
+
+  const { pathname } = request.nextUrl
+
+  // Redirect bare / to /items
+  if (pathname === '/') {
     const url = request.nextUrl.clone()
-    url.pathname = '/categories'
+    url.pathname = '/items'
+    return NextResponse.redirect(url)
+  }
+
+  // Protected routes require authentication
+  const protectedPrefixes = ['/items', '/categories', '/logs', '/carbon', '/bin', '/groups', '/org']
+  const isProtected = protectedPrefixes.some(p => pathname.startsWith(p))
+
+  if (isProtected && !user) {
+    const url = request.nextUrl.clone()
+    url.pathname = '/login'
+    return NextResponse.redirect(url)
+  }
+
+  // Redirect already-authenticated users away from /login
+  if (pathname === '/login' && user) {
+    const url = request.nextUrl.clone()
+    url.pathname = '/items'
     return NextResponse.redirect(url)
   }
 
