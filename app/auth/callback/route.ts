@@ -50,9 +50,10 @@ export async function GET(request: NextRequest) {
   }
 
   if (memberships.length === 1) {
-    const org = memberships[0].organizations as { slug: string } | null
-    if (org?.slug) {
-      return NextResponse.redirect(new URL(`/org/${org.slug}/items`, request.url))
+    const raw = memberships[0].organizations as unknown
+    const slug = Array.isArray(raw) ? (raw[0] as { slug: string })?.slug : (raw as { slug: string } | null)?.slug
+    if (slug) {
+      return NextResponse.redirect(new URL(`/org/${slug}/items`, request.url))
     }
   }
 
