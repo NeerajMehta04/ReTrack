@@ -5,8 +5,11 @@ import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 import { useOrg } from '@/lib/org-context'
 import type { OrgMember } from '@/types'
-import { UserPlus, Trash2, ArrowLeft, Check, LogOut } from 'lucide-react'
+import { UserPlus, Trash2, ArrowLeft, Check, LogOut, MoreHorizontal, Shield, ShieldOff, User } from 'lucide-react'
 import toast from 'react-hot-toast'
+import { formatRelativeTime } from '@/lib/utils'
+
+type ActionTarget = OrgMember | null
 
 export default function OrgSettingsPage() {
   const { org, isAdmin } = useOrg()
@@ -21,6 +24,8 @@ export default function OrgSettingsPage() {
   const [newEmail, setNewEmail] = useState('')
   const [addingMember, setAddingMember] = useState(false)
   const [currentEmail, setCurrentEmail] = useState('')
+  const [actionTarget, setActionTarget] = useState<ActionTarget>(null)
+  const [working, setWorking] = useState(false)
 
   const fetchMembers = useCallback(async () => {
     setLoadingMembers(true)
@@ -40,6 +45,11 @@ export default function OrgSettingsPage() {
     })
   }, [fetchMembers])
 
+  useEffect(() => {
+    document.body.style.overflow = actionTarget ? 'hidden' : ''
+    return () => { document.body.style.overflow = '' }
+  }, [actionTarget])
+
   async function saveName(e: React.FormEvent) {
     e.preventDefault()
     if (!orgName.trim()) return
@@ -48,11 +58,8 @@ export default function OrgSettingsPage() {
       .from('organizations')
       .update({ name: orgName.trim() })
       .eq('id', org.id)
-    if (error) {
-      toast.error('Failed to update name')
-    } else {
-      toast.success('Name updated')
-    }
+    if (error) toast.error('Failed to update name')
+    else toast.success('Name updated')
     setSavingName(false)
   }
 
@@ -65,11 +72,8 @@ export default function OrgSettingsPage() {
       .from('org_members')
       .insert({ org_id: org.id, email, role: 'member' })
     if (error) {
-      if (error.code === '23505') {
-        toast.error('That email is already a member')
-      } else {
-        toast.error('Failed to add member')
-      }
+      if (error.code === '23505') toast.error('That email is already a member')
+      else toast.error('Failed to add member')
     } else {
       toast.success(`${email} added`)
       setNewEmail('')
@@ -78,21 +82,31 @@ export default function OrgSettingsPage() {
     setAddingMember(false)
   }
 
+  async function toggleRole(member: OrgMember) {
+    setWorking(true)
+    const newRole = member.role === 'admin' ? 'member' : 'admin'
+    const { error } = await supabase
+      .from('org_members')
+      .update({ role: newRole })
+      .eq('id', member.id)
+    if (error) toast.error('Failed to update role')
+    else toast.success(newRole === 'admin' ? `${member.email} is now an admin` : `${member.email} is now a member`)
+    setActionTarget(null)
+    setWorking(false)
+    fetchMembers()
+  }
+
   async function removeMember(member: OrgMember) {
-    if (member.email === currentEmail) {
-      toast.error("You can't remove yourself")
-      return
-    }
+    setWorking(true)
     const { error } = await supabase
       .from('org_members')
       .delete()
       .eq('id', member.id)
-    if (error) {
-      toast.error('Failed to remove member')
-    } else {
-      toast.success(`${member.email} removed`)
-      fetchMembers()
-    }
+    if (error) toast.error('Failed to remove member')
+    else toast.success(`${member.email} removed`)
+    setActionTarget(null)
+    setWorking(false)
+    fetchMembers()
   }
 
   if (!isAdmin) {
@@ -106,10 +120,7 @@ export default function OrgSettingsPage() {
   return (
     <div className="flex flex-col min-h-full">
       {/* Header */}
-      <div
-        className="sticky top-0 bg-white z-10 px-4 pt-5 pb-3"
-        style={{ borderBottom: '0.5px solid #F0D0DC' }}
-      >
+      <div className="sticky top-0 bg-white z-10 px-4 pt-5 pb-3" style={{ borderBottom: '0.5px solid #F0D0DC' }}>
         <div className="flex items-center gap-3 mb-1">
           <button
             onClick={() => router.back()}
@@ -144,15 +155,18 @@ export default function OrgSettingsPage() {
             </button>
           </form>
           <p className="text-[10px] text-gray-400 mt-1.5">
-            Workspace URL: <span className="font-mono text-gray-500">/org/{org.slug}</span> (cannot be changed)
+            Workspace URL: <span className="font-mono text-gray-500">/org/{org.slug}</span>
           </p>
         </section>
 
         {/* Members */}
         <section>
-          <h2 className="text-xs font-bold text-gray-500 uppercase tracking-wide mb-3">Members</h2>
+          <div className="flex items-center justify-between mb-1">
+            <h2 className="text-xs font-bold text-gray-500 uppercase tracking-wide">Members</h2>
+            <span className="text-[10px] text-gray-400">{members.length} {members.length === 1 ? 'person' : 'people'}</span>
+          </div>
           <p className="text-xs text-gray-400 mb-3">
-            Only these email addresses can access this workspace after signing in.
+            Only these email addresses can access this workspace.
           </p>
 
           {/* Add member */}
@@ -179,31 +193,52 @@ export default function OrgSettingsPage() {
           {loadingMembers ? (
             <div className="space-y-2">
               {Array.from({ length: 3 }).map((_, i) => (
-                <div key={i} className="h-12 rounded-xl bg-gray-100 animate-pulse" />
+                <div key={i} className="h-16 rounded-xl bg-gray-100 animate-pulse" />
               ))}
             </div>
           ) : (
             <div className="space-y-2">
-              {members.map(member => (
-                <div
-                  key={member.id}
-                  className="flex items-center justify-between px-3 py-2.5 rounded-xl bg-gray-50"
-                  style={{ border: '0.5px solid #E5E7EB' }}
-                >
-                  <div>
-                    <p className="text-sm text-gray-800 font-medium">{member.email}</p>
-                    <p className="text-[10px] text-gray-400 capitalize">{member.role}</p>
+              {members.map(member => {
+                const isSelf = member.email === currentEmail
+                return (
+                  <div
+                    key={member.id}
+                    className="flex items-center justify-between px-3 py-3 rounded-xl bg-white"
+                    style={{ border: '0.5px solid #E5E7EB' }}
+                  >
+                    <div className="flex items-center gap-2.5 min-w-0">
+                      <div className="w-8 h-8 rounded-full bg-primary-light flex items-center justify-center flex-shrink-0">
+                        <User className="w-4 h-4 text-primary" />
+                      </div>
+                      <div className="min-w-0">
+                        <div className="flex items-center gap-1.5 flex-wrap">
+                          <p className="text-sm font-semibold text-gray-800 truncate">{member.email}</p>
+                          {isSelf && <span className="text-[10px] text-gray-400">(you)</span>}
+                        </div>
+                        <div className="flex items-center gap-1.5 mt-0.5">
+                          <span className={`inline-flex items-center gap-0.5 text-[10px] font-semibold px-1.5 py-0.5 rounded-full ${
+                            member.role === 'admin'
+                              ? 'bg-primary-light text-primary'
+                              : 'bg-gray-100 text-gray-500'
+                          }`}>
+                            {member.role === 'admin' && <Shield className="w-2.5 h-2.5" />}
+                            {member.role === 'admin' ? 'Admin' : 'Member'}
+                          </span>
+                          <span className="text-[10px] text-gray-400">· Added {formatRelativeTime(member.added_at)}</span>
+                        </div>
+                      </div>
+                    </div>
+                    {!isSelf && (
+                      <button
+                        onClick={() => setActionTarget(member)}
+                        className="w-8 h-8 flex-shrink-0 rounded-full flex items-center justify-center text-gray-400 hover:bg-gray-100 transition-colors ml-2"
+                      >
+                        <MoreHorizontal className="w-4 h-4" />
+                      </button>
+                    )}
                   </div>
-                  {member.email !== currentEmail && (
-                    <button
-                      onClick={() => removeMember(member)}
-                      className="w-7 h-7 rounded-full flex items-center justify-center text-gray-400 hover:text-red-500 hover:bg-red-50 transition-colors"
-                    >
-                      <Trash2 className="w-3.5 h-3.5" />
-                    </button>
-                  )}
-                </div>
-              ))}
+                )
+              })}
               {members.length === 0 && (
                 <p className="text-sm text-gray-400 text-center py-4">No members yet</p>
               )}
@@ -226,6 +261,81 @@ export default function OrgSettingsPage() {
           </button>
         </section>
       </div>
+
+      {/* Member action sheet */}
+      {actionTarget && (
+        <>
+          <div className="fixed inset-0 bg-black/40 z-30" onClick={() => setActionTarget(null)} />
+          <div className="fixed bottom-0 left-0 right-0 z-40 max-w-md mx-auto bg-white rounded-t-2xl shadow-2xl">
+            <div className="flex justify-center pt-3 pb-1">
+              <div className="w-10 h-1 bg-gray-200 rounded-full" />
+            </div>
+
+            {/* Member info */}
+            <div className="px-5 py-3" style={{ borderBottom: '0.5px solid #F5F5F5' }}>
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-full bg-primary-light flex items-center justify-center">
+                  <User className="w-5 h-5 text-primary" />
+                </div>
+                <div>
+                  <p className="text-sm font-bold text-gray-900">{actionTarget.email}</p>
+                  <span className={`inline-flex items-center gap-0.5 text-[10px] font-semibold px-1.5 py-0.5 rounded-full mt-0.5 ${
+                    actionTarget.role === 'admin' ? 'bg-primary-light text-primary' : 'bg-gray-100 text-gray-500'
+                  }`}>
+                    {actionTarget.role === 'admin' && <Shield className="w-2.5 h-2.5" />}
+                    {actionTarget.role === 'admin' ? 'Admin' : 'Member'}
+                  </span>
+                </div>
+              </div>
+            </div>
+
+            {/* Actions */}
+            <div className="px-5 py-3 space-y-1">
+              <button
+                onClick={() => toggleRole(actionTarget)}
+                disabled={working}
+                className="w-full flex items-center gap-3 px-3 py-3 rounded-xl hover:bg-gray-50 transition-colors text-left disabled:opacity-50"
+              >
+                {actionTarget.role === 'admin'
+                  ? <ShieldOff className="w-5 h-5 text-gray-500" />
+                  : <Shield className="w-5 h-5 text-primary" />
+                }
+                <div>
+                  <p className="text-sm font-semibold text-gray-800">
+                    {actionTarget.role === 'admin' ? 'Remove admin' : 'Make admin'}
+                  </p>
+                  <p className="text-[11px] text-gray-400">
+                    {actionTarget.role === 'admin'
+                      ? 'Downgrade to regular member'
+                      : 'Grant access to settings and member management'}
+                  </p>
+                </div>
+              </button>
+
+              <button
+                onClick={() => removeMember(actionTarget)}
+                disabled={working}
+                className="w-full flex items-center gap-3 px-3 py-3 rounded-xl hover:bg-red-50 transition-colors text-left disabled:opacity-50"
+              >
+                <Trash2 className="w-5 h-5 text-red-500" />
+                <div>
+                  <p className="text-sm font-semibold text-red-500">Remove from workspace</p>
+                  <p className="text-[11px] text-gray-400">They will lose access immediately</p>
+                </div>
+              </button>
+            </div>
+
+            <div className="px-5 pb-6 pt-1">
+              <button
+                onClick={() => setActionTarget(null)}
+                className="w-full py-2.5 rounded-xl text-sm font-semibold text-gray-500 bg-gray-100 hover:bg-gray-200 transition-colors"
+              >
+                Cancel
+              </button>
+            </div>
+          </div>
+        </>
+      )}
     </div>
   )
 }

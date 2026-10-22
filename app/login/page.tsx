@@ -37,7 +37,7 @@ function LoginForm() {
       .eq('email', userEmail)
 
     if (!memberships || memberships.length === 0) {
-      router.push('/items')
+      router.push('/org/setup')
       return
     }
     if (memberships.length === 1) {
