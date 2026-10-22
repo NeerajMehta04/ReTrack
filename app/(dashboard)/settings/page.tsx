@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
-import { Building2, Plus, LogOut, User } from 'lucide-react'
+import { Building2, Plus, LogOut, User, Pencil } from 'lucide-react'
 import Link from 'next/link'
 import toast from 'react-hot-toast'
 
@@ -13,13 +13,18 @@ export default function DemoSettingsPage() {
   const [email, setEmail] = useState('')
   const [firstName, setFirstName] = useState('')
   const [lastName, setLastName] = useState('')
+  const [savedFirstName, setSavedFirstName] = useState('')
+  const [savedLastName, setSavedLastName] = useState('')
+  const [editingProfile, setEditingProfile] = useState(false)
   const [savingProfile, setSavingProfile] = useState(false)
 
   useEffect(() => {
     supabase.auth.getUser().then(({ data: { user } }) => {
       if (user?.email) setEmail(user.email)
-      if (user?.user_metadata?.first_name) setFirstName(user.user_metadata.first_name)
-      if (user?.user_metadata?.last_name) setLastName(user.user_metadata.last_name)
+      const fn = user?.user_metadata?.first_name ?? ''
+      const ln = user?.user_metadata?.last_name ?? ''
+      setFirstName(fn); setSavedFirstName(fn)
+      setLastName(ln); setSavedLastName(ln)
     })
   }, [])
 
@@ -29,9 +34,21 @@ export default function DemoSettingsPage() {
     const { error } = await supabase.auth.updateUser({
       data: { first_name: firstName.trim(), last_name: lastName.trim() },
     })
-    if (error) toast.error('Failed to update profile')
-    else toast.success('Profile updated')
+    if (error) {
+      toast.error('Failed to update profile')
+    } else {
+      setSavedFirstName(firstName.trim())
+      setSavedLastName(lastName.trim())
+      setEditingProfile(false)
+      toast.success('Profile updated')
+    }
     setSavingProfile(false)
+  }
+
+  function cancelEditProfile() {
+    setFirstName(savedFirstName)
+    setLastName(savedLastName)
+    setEditingProfile(false)
   }
 
   async function handleSignOut() {
@@ -62,31 +79,62 @@ export default function DemoSettingsPage() {
               <p className="text-sm text-gray-700 truncate">{email}</p>
             </div>
           )}
-          <form onSubmit={saveProfile} className="space-y-2">
-            <input
-              type="text"
-              value={firstName}
-              onChange={e => setFirstName(e.target.value)}
-              placeholder="First name"
-              className="w-full px-3 py-2.5 rounded-xl text-sm focus:outline-none focus:ring-1 focus:ring-primary"
+          {editingProfile ? (
+            <form onSubmit={saveProfile} className="space-y-2">
+              <input
+                type="text"
+                value={firstName}
+                onChange={e => setFirstName(e.target.value)}
+                placeholder="First name"
+                autoFocus
+                className="w-full px-3 py-2.5 rounded-xl text-sm focus:outline-none focus:ring-1 focus:ring-primary"
+                style={{ border: '0.5px solid #E5E7EB' }}
+              />
+              <input
+                type="text"
+                value={lastName}
+                onChange={e => setLastName(e.target.value)}
+                placeholder="Last name"
+                className="w-full px-3 py-2.5 rounded-xl text-sm focus:outline-none focus:ring-1 focus:ring-primary"
+                style={{ border: '0.5px solid #E5E7EB' }}
+              />
+              <div className="flex gap-2">
+                <button
+                  type="button"
+                  onClick={cancelEditProfile}
+                  className="flex-1 py-2.5 rounded-xl text-sm font-semibold text-gray-500 bg-gray-100 hover:bg-gray-200 transition-colors"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={savingProfile}
+                  className="flex-1 py-2.5 bg-primary text-white rounded-xl text-sm font-semibold disabled:opacity-40 hover:bg-primary-dark transition-colors"
+                >
+                  {savingProfile ? 'Saving…' : 'Save'}
+                </button>
+              </div>
+            </form>
+          ) : (
+            <div
+              className="flex items-center justify-between px-4 py-3 rounded-xl bg-white"
               style={{ border: '0.5px solid #E5E7EB' }}
-            />
-            <input
-              type="text"
-              value={lastName}
-              onChange={e => setLastName(e.target.value)}
-              placeholder="Last name"
-              className="w-full px-3 py-2.5 rounded-xl text-sm focus:outline-none focus:ring-1 focus:ring-primary"
-              style={{ border: '0.5px solid #E5E7EB' }}
-            />
-            <button
-              type="submit"
-              disabled={savingProfile}
-              className="w-full py-2.5 bg-primary text-white rounded-xl text-sm font-semibold disabled:opacity-40 hover:bg-primary-dark transition-colors"
             >
-              {savingProfile ? 'Saving…' : 'Save profile'}
-            </button>
-          </form>
+              <p className="text-sm text-gray-700">
+                {savedFirstName || savedLastName
+                  ? `${savedFirstName} ${savedLastName}`.trim()
+                  : <span className="text-gray-400">Add your name</span>
+                }
+              </p>
+              <button
+                onClick={() => setEditingProfile(true)}
+                className="flex items-center gap-1 text-xs font-semibold text-primary hover:text-primary-dark transition-colors"
+              >
+                <Pencil className="w-3 h-3" />
+                Edit
+              </button>
+            </div>
+          )}
         </section>
 
         {/* Workspace */}
