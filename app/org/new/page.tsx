@@ -56,7 +56,11 @@ export default function NewOrgPage() {
 
       if (orgErr) {
         if (orgErr.code === '23505') {
-          toast.error('That URL is already taken — try a different one')
+          if (orgErr.message.includes('organizations_owner_name_unique') || orgErr.message.includes('owner_name')) {
+            toast.error('You already have a workspace with this name')
+          } else {
+            toast.error('That workspace URL is already taken — try a different one')
+          }
         } else {
           toast.error(orgErr.message || 'Failed to create organisation')
           console.error('Org create error:', orgErr)
