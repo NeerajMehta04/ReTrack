@@ -66,11 +66,18 @@ export default function NewOrgPage() {
       }
 
       // Add creator as admin member
-      await supabase.from('org_members').insert({
+      const { error: memberErr } = await supabase.from('org_members').insert({
         org_id: org.id,
         email: user.email!,
         role: 'admin',
       })
+
+      if (memberErr) {
+        console.error('Member insert error:', memberErr)
+        toast.error(`Org created but could not add you as member: ${memberErr.message}`)
+        setSaving(false)
+        return
+      }
 
       toast.success('Organisation created!')
       router.push(`/org/${org.slug}/settings`)
