@@ -9,6 +9,17 @@ import toast from 'react-hot-toast'
 
 const CAT_COLORS = ['#8B5CF6','#F59E0B','#3B82F6','#10B981','#EF4444','#EC4899','#6B7280','#D4537E']
 
+const CAT_EMOJIS = [
+  '🪑','🛋️','🛏️','🚪','🪞','🪟','🖼️','🪣',
+  '🍽️','🥣','🥛','☕','🍳','🔪','🫙','🧊',
+  '💼','🖥️','⌨️','🖨️','📱','💡','🔌','📎',
+  '🧰','📦','🗃️','🗄️','📋','🔧','🪛','🔑',
+  '🚲','🛴','🛒','🚗',
+  '👕','👖','🧥','👟','🧤','🎒','👜','🧺',
+  '🌱','🪴','🌿','🍀','🌸','🌻','🍁','🪨',
+  '⭐','❤️','✅','🏷️','🎁','♻️','🔖','📌',
+]
+
 interface Props {
   open: boolean
   onClose: () => void
@@ -41,6 +52,7 @@ export default function ItemModal({ open, onClose, categories, item, onSaved, or
   const [newCatIcon, setNewCatIcon] = useState('📦')
   const [newCatColor, setNewCatColor] = useState(CAT_COLORS[0])
   const [creatingCat, setCreatingCat] = useState(false)
+  const [emojiPickerOpen, setEmojiPickerOpen] = useState(false)
 
   // Warning sheet state
   const [showWarning, setShowWarning] = useState(false)
@@ -65,6 +77,7 @@ export default function ItemModal({ open, onClose, categories, item, onSaved, or
       setNewCatName('')
       setNewCatIcon('📦')
       setNewCatColor(CAT_COLORS[0])
+      setEmojiPickerOpen(false)
     }
   }, [open, item, categories])
 
@@ -108,6 +121,7 @@ export default function ItemModal({ open, onClose, categories, item, onSaved, or
       setNewCatName('')
       setNewCatIcon('📦')
       setNewCatColor(CAT_COLORS[0])
+      setEmojiPickerOpen(false)
       toast.success(`"${cat.name}" created`)
     } catch (err: unknown) {
       toast.error(err instanceof Error ? err.message : 'Failed to create category')
@@ -428,15 +442,14 @@ export default function ItemModal({ open, onClose, categories, item, onSaved, or
 
                 {/* Name + emoji */}
                 <div className="flex gap-2">
-                  <input
-                    type="text"
-                    value={newCatIcon}
-                    onChange={e => setNewCatIcon(e.target.value)}
-                    maxLength={2}
-                    placeholder="📦"
-                    className="w-12 px-2 py-2 rounded-xl text-center text-base bg-white focus:outline-none focus:ring-1 focus:ring-primary"
-                    style={{ border: '0.5px solid #E5E7EB' }}
-                  />
+                  <button
+                    type="button"
+                    onClick={() => setEmojiPickerOpen(p => !p)}
+                    className="w-12 h-10 rounded-xl text-xl flex items-center justify-center bg-white flex-shrink-0 hover:bg-gray-50 transition-colors"
+                    style={{ border: emojiPickerOpen ? '1.5px solid #D4537E' : '0.5px solid #E5E7EB' }}
+                  >
+                    {newCatIcon}
+                  </button>
                   <input
                     type="text"
                     value={newCatName}
@@ -447,6 +460,27 @@ export default function ItemModal({ open, onClose, categories, item, onSaved, or
                     style={{ border: '0.5px solid #E5E7EB' }}
                   />
                 </div>
+
+                {/* Emoji picker grid */}
+                {emojiPickerOpen && (
+                  <div
+                    className="rounded-xl bg-white p-2 max-h-32 overflow-y-auto"
+                    style={{ border: '0.5px solid #E5E7EB' }}
+                  >
+                    <div className="grid grid-cols-8 gap-1">
+                      {CAT_EMOJIS.map(emoji => (
+                        <button
+                          key={emoji}
+                          type="button"
+                          onClick={() => { setNewCatIcon(emoji); setEmojiPickerOpen(false) }}
+                          className={`text-lg p-1 rounded-lg hover:bg-primary-light transition-colors ${newCatIcon === emoji ? 'bg-primary-light' : ''}`}
+                        >
+                          {emoji}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                )}
 
                 {/* Colour swatches */}
                 <div className="flex gap-1.5 flex-wrap">
