@@ -63,24 +63,22 @@ export default function DemoSettingsPage() {
             </div>
           )}
           <form onSubmit={saveProfile} className="space-y-2">
-            <div className="flex gap-2">
-              <input
-                type="text"
-                value={firstName}
-                onChange={e => setFirstName(e.target.value)}
-                placeholder="First name"
-                className="flex-1 px-3 py-2.5 rounded-xl text-sm focus:outline-none focus:ring-1 focus:ring-primary"
-                style={{ border: '0.5px solid #E5E7EB' }}
-              />
-              <input
-                type="text"
-                value={lastName}
-                onChange={e => setLastName(e.target.value)}
-                placeholder="Last name"
-                className="flex-1 px-3 py-2.5 rounded-xl text-sm focus:outline-none focus:ring-1 focus:ring-primary"
-                style={{ border: '0.5px solid #E5E7EB' }}
-              />
-            </div>
+            <input
+              type="text"
+              value={firstName}
+              onChange={e => setFirstName(e.target.value)}
+              placeholder="First name"
+              className="w-full px-3 py-2.5 rounded-xl text-sm focus:outline-none focus:ring-1 focus:ring-primary"
+              style={{ border: '0.5px solid #E5E7EB' }}
+            />
+            <input
+              type="text"
+              value={lastName}
+              onChange={e => setLastName(e.target.value)}
+              placeholder="Last name"
+              className="w-full px-3 py-2.5 rounded-xl text-sm focus:outline-none focus:ring-1 focus:ring-primary"
+              style={{ border: '0.5px solid #E5E7EB' }}
+            />
             <button
               type="submit"
               disabled={savingProfile}
