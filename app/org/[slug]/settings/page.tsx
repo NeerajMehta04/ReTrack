@@ -470,6 +470,36 @@ export default function OrgSettingsPage() {
           </section>
         )}
 
+        {/* Public link — all members, shown when org is public */}
+        {isPublic && (
+          <section>
+            <h2 className="text-xs font-bold text-gray-500 uppercase tracking-wide mb-3">Public Inventory</h2>
+            <div
+              className="rounded-xl bg-white overflow-hidden"
+              style={{ border: '0.5px solid #F0D0DC' }}
+            >
+              <div className="px-4 py-3" style={{ borderBottom: '0.5px solid #F5F5F5' }}>
+                <p className="text-xs text-gray-500">Your inventory is publicly visible. Share this link so anyone can browse your stock.</p>
+              </div>
+              <div className="flex items-center justify-between px-4 py-3">
+                <p className="text-[11px] text-gray-600 truncate font-mono">
+                  {typeof window !== 'undefined' ? window.location.origin : 'https://retrack-eiwh.onrender.com'}/p/{org.slug}
+                </p>
+                <button
+                  onClick={() => {
+                    const url = `${window.location.origin}/p/${org.slug}`
+                    navigator.clipboard.writeText(url).then(() => toast.success('Link copied!'))
+                  }}
+                  className="flex items-center gap-1 text-xs font-semibold text-primary hover:text-primary-dark transition-colors flex-shrink-0 ml-3"
+                >
+                  <Copy className="w-3 h-3" />
+                  Copy
+                </button>
+              </div>
+            </div>
+          </section>
+        )}
+
         {/* Workspace actions — all members */}
         <section>
           <h2 className="text-xs font-bold text-gray-500 uppercase tracking-wide mb-3">Workspace</h2>
