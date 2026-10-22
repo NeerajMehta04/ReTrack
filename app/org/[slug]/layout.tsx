@@ -16,26 +16,33 @@ export default async function OrgLayout({ children, params }: Props) {
   const { slug } = await params
   const supabase = await createClient()
 
-  const { data: { user } } = await supabase.auth.getUser()
+  const { data: { user }, error: authErr } = await supabase.auth.getUser()
+  if (authErr) throw new Error(`Auth error: ${authErr.message}`)
   if (!user) redirect('/login')
 
   // Load the org
-  const { data: org } = await supabase
+  const { data: org, error: orgErr } = await supabase
     .from('organizations')
     .select('*')
     .eq('slug', slug)
     .single()
 
+  if (orgErr && orgErr.code !== 'PGRST116') {
+    throw new Error(`Failed to load workspace: ${orgErr.message}`)
+  }
   if (!org) redirect('/items')
 
   // Check the user is a member
-  const { data: membership } = await supabase
+  const { data: membership, error: memberErr } = await supabase
     .from('org_members')
     .select('role')
     .eq('org_id', org.id)
     .eq('email', user.email!)
     .single()
 
+  if (memberErr && memberErr.code !== 'PGRST116') {
+    throw new Error(`Failed to verify membership: ${memberErr.message}`)
+  }
   if (!membership) redirect('/items')
 
   const isAdmin = membership.role === 'admin' || org.owner_id === user.id
