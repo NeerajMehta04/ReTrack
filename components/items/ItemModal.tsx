@@ -401,7 +401,13 @@ export default function ItemModal({ open, onClose, categories, item, onSaved, or
             </label>
             <select
               value={categoryId}
-              onChange={e => setCategoryId(e.target.value)}
+              onChange={e => {
+                if (e.target.value === '__create__') {
+                  setShowNewCat(true)
+                } else {
+                  setCategoryId(e.target.value)
+                }
+              }}
               className="w-full px-3 py-2.5 rounded-xl text-sm bg-white focus:outline-none focus:ring-1 focus:ring-primary appearance-none"
               style={{ border: '0.5px solid #E5E7EB' }}
             >
@@ -409,19 +415,8 @@ export default function ItemModal({ open, onClose, categories, item, onSaved, or
               {localCategories.map(c => (
                 <option key={c.id} value={c.id}>{c.icon} {c.name}</option>
               ))}
+              {orgId && <option value="__create__">＋ Create new category</option>}
             </select>
-
-            {/* Inline new category */}
-            {orgId && !showNewCat && (
-              <button
-                type="button"
-                onClick={() => setShowNewCat(true)}
-                className="mt-1.5 flex items-center gap-1 text-[11px] font-semibold text-primary hover:text-primary-dark transition-colors"
-              >
-                <Plus className="w-3 h-3" />
-                Create category
-              </button>
-            )}
 
             {showNewCat && (
               <form
