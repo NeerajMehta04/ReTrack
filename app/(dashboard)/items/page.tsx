@@ -67,12 +67,7 @@ function ItemsList() {
             <Plus className="w-4 h-4 text-white" strokeWidth={2.5} />
           </button>
         </div>
-        <Link href="/org/new" className="flex items-center justify-between w-full px-3 py-2 mb-3 rounded-xl text-xs font-medium text-primary bg-primary-light hover:bg-pink-100 transition-colors" style={{ border: '0.5px solid #F0D0DC' }}>
-          <span>Create a private workspace for your organisation</span>
-          <ChevronRight className="w-3.5 h-3.5 flex-shrink-0 ml-1" />
-        </Link>
-
-        <div className="relative">
+<div className="relative">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" />
           <input
             type="search"
