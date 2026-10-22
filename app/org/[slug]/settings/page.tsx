@@ -25,6 +25,9 @@ export default function OrgSettingsPage() {
   const [newEmail, setNewEmail] = useState('')
   const [addingMember, setAddingMember] = useState(false)
   const [currentEmail, setCurrentEmail] = useState('')
+  const [firstName, setFirstName] = useState('')
+  const [lastName, setLastName] = useState('')
+  const [savingProfile, setSavingProfile] = useState(false)
   const [actionTarget, setActionTarget] = useState<ActionTarget>(null)
   const [working, setWorking] = useState(false)
 
@@ -43,6 +46,8 @@ export default function OrgSettingsPage() {
     fetchMembers()
     supabase.auth.getUser().then(({ data: { user } }) => {
       if (user?.email) setCurrentEmail(user.email)
+      if (user?.user_metadata?.first_name) setFirstName(user.user_metadata.first_name)
+      if (user?.user_metadata?.last_name) setLastName(user.user_metadata.last_name)
     })
   }, [fetchMembers])
 
@@ -50,6 +55,17 @@ export default function OrgSettingsPage() {
     document.body.style.overflow = actionTarget ? 'hidden' : ''
     return () => { document.body.style.overflow = '' }
   }, [actionTarget])
+
+  async function saveProfile(e: React.FormEvent) {
+    e.preventDefault()
+    setSavingProfile(true)
+    const { error } = await supabase.auth.updateUser({
+      data: { first_name: firstName.trim(), last_name: lastName.trim() },
+    })
+    if (error) toast.error('Failed to update profile')
+    else toast.success('Profile updated')
+    setSavingProfile(false)
+  }
 
   async function saveName(e: React.FormEvent) {
     e.preventDefault()
@@ -127,6 +143,47 @@ export default function OrgSettingsPage() {
       </div>
 
       <div className="px-4 py-5 space-y-6">
+        {/* Account — all members */}
+        <section>
+          <h2 className="text-xs font-bold text-gray-500 uppercase tracking-wide mb-3">Account</h2>
+          <div
+            className="flex items-center gap-3 px-4 py-3 rounded-xl bg-white mb-3"
+            style={{ border: '0.5px solid #E5E7EB' }}
+          >
+            <div className="w-8 h-8 rounded-full bg-primary-light flex items-center justify-center flex-shrink-0">
+              <User className="w-4 h-4 text-primary" />
+            </div>
+            <p className="text-sm text-gray-700 truncate">{currentEmail}</p>
+          </div>
+          <form onSubmit={saveProfile} className="space-y-2">
+            <div className="flex gap-2">
+              <input
+                type="text"
+                value={firstName}
+                onChange={e => setFirstName(e.target.value)}
+                placeholder="First name"
+                className="flex-1 px-3 py-2.5 rounded-xl text-sm focus:outline-none focus:ring-1 focus:ring-primary"
+                style={{ border: '0.5px solid #E5E7EB' }}
+              />
+              <input
+                type="text"
+                value={lastName}
+                onChange={e => setLastName(e.target.value)}
+                placeholder="Last name"
+                className="flex-1 px-3 py-2.5 rounded-xl text-sm focus:outline-none focus:ring-1 focus:ring-primary"
+                style={{ border: '0.5px solid #E5E7EB' }}
+              />
+            </div>
+            <button
+              type="submit"
+              disabled={savingProfile}
+              className="w-full py-2.5 bg-primary text-white rounded-xl text-sm font-semibold disabled:opacity-40 hover:bg-primary-dark transition-colors"
+            >
+              {savingProfile ? 'Saving…' : 'Save profile'}
+            </button>
+          </form>
+        </section>
+
         {/* Organisation name — admin only */}
         {isAdmin && (
           <section>
