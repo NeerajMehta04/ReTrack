@@ -10,6 +10,7 @@ import type { Item, Category } from '@/types'
 import { Search, X, ShoppingCart, ChevronRight, Package, Plus } from 'lucide-react'
 import { ItemSkeleton } from '@/components/ui/Skeleton'
 import ItemModal from '@/components/items/ItemModal'
+import VoiceLogButton from '@/components/VoiceLogButton'
 
 function OrgItemsList() {
   const searchParams = useSearchParams()
@@ -193,6 +194,7 @@ function OrgItemsList() {
         onSaved={() => { fetchItems() }}
         orgId={org.id}
       />
+      <VoiceLogButton onLogged={fetchItems} />
     </div>
   )
 }
