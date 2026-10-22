@@ -1,8 +1,11 @@
 import OpenAI from 'openai'
 import { NextRequest, NextResponse } from 'next/server'
-import { toFile } from 'openai'
 
 const openai = new OpenAI()
+
+export const config = {
+  api: { bodyParser: false },
+}
 
 type ParsedUpdate = {
   item_id: string | null
@@ -13,17 +16,22 @@ type ParsedUpdate = {
 
 export async function POST(req: NextRequest) {
   const formData = await req.formData()
-  const audioBlob = formData.get('audio')
+  const audioEntry = formData.get('audio')
   const itemsJson = formData.get('items')
 
-  if (!(audioBlob instanceof Blob) || typeof itemsJson !== 'string') {
-    return NextResponse.json({ error: 'audio blob and items JSON are required.' }, { status: 400 })
+  if (!audioEntry || typeof itemsJson !== 'string') {
+    return NextResponse.json({ error: 'audio and items JSON are required.' }, { status: 400 })
   }
 
   const items: { id: string; name: string }[] = JSON.parse(itemsJson)
 
   try {
-    const audioFile = await toFile(audioBlob, 'recording.webm', { type: audioBlob.type || 'audio/webm' })
+    // Next.js returns a File object from formData
+    const audioBlob = audioEntry as unknown as Blob
+    const audioFile = new File([audioBlob], 'recording.webm', {
+      type: (audioBlob as File).type || 'audio/webm',
+    })
+
     const transcription = await openai.audio.transcriptions.create({
       model: 'whisper-1',
       file: audioFile,
@@ -75,7 +83,8 @@ Rules:
 
     return NextResponse.json({ transcript, updates })
   } catch (error) {
-    console.error('Voice log processing failed:', error)
-    return NextResponse.json({ error: 'Failed to process voice log.' }, { status: 502 })
+    const msg = error instanceof Error ? error.message : String(error)
+    console.error('Voice log processing failed:', msg)
+    return NextResponse.json({ error: 'Failed to process voice log.', detail: msg }, { status: 502 })
   }
 }

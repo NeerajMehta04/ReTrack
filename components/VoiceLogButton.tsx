@@ -59,7 +59,9 @@ export default function VoiceLogButton({ onLogged, offset = 'bottom-20 right-4' 
 
     const res = await fetch('/api/voice-log', { method: 'POST', body: fd })
     if (!res.ok) {
-      toast.error('Could not process voice note')
+      const errData = await res.json().catch(() => ({}))
+      console.error('Voice log API error:', errData)
+      toast.error(errData.detail ? `Error: ${errData.detail}` : 'Could not process voice note')
       setStage('idle')
       return
     }
