@@ -54,6 +54,9 @@ export interface Organization {
   slug: string
   owner_id: string
   created_at: string
+  is_public: boolean
+  description: string | null
+  location: string | null
 }
 
 export interface OrgMember {
