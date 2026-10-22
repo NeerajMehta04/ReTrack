@@ -18,10 +18,10 @@ type UpdateRow = {
   condition: Condition | null
 }
 
-const CONDITIONS: { value: Condition; label: string }[] = [
-  { value: 'good', label: 'Good' },
-  { value: 'fair', label: 'Fair' },
-  { value: 'poor', label: 'Poor' },
+const CONDITIONS: { value: Condition; label: string; activeClass: string }[] = [
+  { value: 'good', label: 'Good', activeClass: 'bg-green-500 text-white' },
+  { value: 'fair', label: 'Fair', activeClass: 'bg-yellow-400 text-white' },
+  { value: 'poor', label: 'Poor', activeClass: 'bg-red-500 text-white' },
 ]
 
 type Stage = 'idle' | 'recording' | 'processing' | 'confirming'
@@ -270,7 +270,7 @@ export default function VoiceLogButton({ onLogged, offset = 'bottom-20 right-4' 
                         onClick={() => updateRow(i, { condition: row.condition === c.value ? null : c.value })}
                         className={`px-2.5 py-1 rounded-lg text-[11px] font-semibold transition-colors ${
                           row.condition === c.value
-                            ? 'bg-primary text-white'
+                            ? c.activeClass
                             : 'bg-gray-100 text-gray-500 hover:bg-gray-200'
                         }`}
                       >
