@@ -123,6 +123,12 @@ export default function OrgItemDetailPage() {
       setComment('')
       setCondition('')
       toast.success(direction === 'in' ? `+${qty} logged` : `−${qty} logged`)
+      if (direction === 'in' && item?.max_capacity) {
+        const newStock = item.stock + qty
+        if (newStock >= item.max_capacity) {
+          toast('Item is now at or over maximum capacity', { icon: '🔴' })
+        }
+      }
     } catch (err: unknown) {
       toast.error(err instanceof Error ? err.message : 'Failed to log')
     } finally {
@@ -287,11 +293,37 @@ export default function OrgItemDetailPage() {
               )}
             </div>
             <div className="text-right flex-shrink-0">
-              <span className="text-3xl font-black text-primary">{item.stock}</span>
-              <p className="text-[10px] text-gray-400">in stock</p>
+              <span className={`text-3xl font-black ${
+                item.max_capacity && item.stock >= item.max_capacity ? 'text-red-500'
+                : item.max_capacity && item.stock >= item.max_capacity * 0.9 ? 'text-amber-500'
+                : 'text-primary'
+              }`}>{item.stock}</span>
+              <p className="text-[10px] text-gray-400">
+                {item.max_capacity ? `/ ${item.max_capacity} max` : 'in stock'}
+              </p>
             </div>
           </div>
         </div>
+        {item.max_capacity && (
+          <div className="mx-4 mt-1 mb-1">
+            <div className="w-full h-1.5 bg-gray-100 rounded-full overflow-hidden">
+              <div
+                className={`h-full rounded-full transition-all ${
+                  item.stock >= item.max_capacity ? 'bg-red-400'
+                  : item.stock >= item.max_capacity * 0.9 ? 'bg-amber-400'
+                  : 'bg-primary'
+                }`}
+                style={{ width: `${Math.min(100, (item.stock / item.max_capacity) * 100)}%` }}
+              />
+            </div>
+          </div>
+        )}
+        {item.max_capacity && item.stock >= item.max_capacity && (
+          <div className="mx-4 mb-2 flex items-center gap-2 px-3 py-2.5 rounded-xl bg-red-50 text-red-600 text-xs font-semibold" style={{ border: '0.5px solid #FCA5A5' }}>
+            <span>⚠️</span>
+            At maximum capacity — consider pausing intake
+          </div>
+        )}
       </div>
 
       <div className="p-4 space-y-4 pb-6">

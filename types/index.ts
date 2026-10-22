@@ -15,6 +15,7 @@ export interface Item {
   image_url: string | null
   created_at: string
   deleted_at?: string | null
+  max_capacity?: number | null
   carbon_kg_per_item?: number | null
   carbon_kg_total?: number | null
   carbon_summary?: string | null

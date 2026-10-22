@@ -41,6 +41,7 @@ export default function ItemModal({ open, onClose, categories, item, onSaved, or
   const [description, setDescription] = useState('')
   const [categoryId, setCategoryId] = useState('')
   const [stock, setStock] = useState('0')
+  const [maxCapacity, setMaxCapacity] = useState('')
   const [imageFile, setImageFile] = useState<File | null>(null)
   const [imagePreview, setImagePreview] = useState('')
   const [saving, setSaving] = useState(false)
@@ -67,6 +68,7 @@ export default function ItemModal({ open, onClose, categories, item, onSaved, or
       setDescription(item?.description ?? '')
       setCategoryId(item?.category_id ?? '')
       setStock(String(item?.stock ?? 0))
+      setMaxCapacity(item?.max_capacity != null ? String(item.max_capacity) : '')
       setImagePreview(item?.image_url ?? '')
       setImageFile(null)
       setShowWarning(false)
@@ -156,6 +158,7 @@ export default function ItemModal({ open, onClose, categories, item, onSaved, or
           category_id: categoryId || null,
           image_url: finalImageUrl,
           stock: stockValue,
+          max_capacity: parseInt(maxCapacity) > 0 ? parseInt(maxCapacity) : null,
         })
         .eq('id', item.id)
       if (updateErr) throw updateErr
@@ -206,6 +209,7 @@ export default function ItemModal({ open, onClose, categories, item, onSaved, or
             description: description.trim() || null,
             category_id: categoryId || null,
             stock: Math.max(0, parseInt(stock) || 0),
+            max_capacity: parseInt(maxCapacity) > 0 ? parseInt(maxCapacity) : null,
             ...(orgId ? { org_id: orgId } : {}),
           })
           .select('*, categories(*)')
@@ -538,6 +542,26 @@ export default function ItemModal({ open, onClose, categories, item, onSaved, or
                 For routine movements, use the Logs tab to keep a full history.
               </p>
             )}
+          </div>
+
+          {/* Max Capacity */}
+          <div className="mb-5">
+            <label className="block text-[11px] font-bold text-gray-500 uppercase tracking-wide mb-1.5">
+              Max Capacity <span className="font-normal normal-case">(optional)</span>
+            </label>
+            <input
+              type="number"
+              inputMode="numeric"
+              min="0"
+              value={maxCapacity}
+              onChange={e => setMaxCapacity(e.target.value)}
+              placeholder="e.g. 50"
+              className="w-full px-3 py-2.5 rounded-xl text-sm focus:outline-none focus:ring-1 focus:ring-primary"
+              style={{ border: '0.5px solid #E5E7EB' }}
+            />
+            <p className="text-[10px] text-gray-400 mt-1.5">
+              You'll be alerted when stock reaches this limit.
+            </p>
           </div>
 
           {/* Actions */}

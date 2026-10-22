@@ -173,9 +173,18 @@ function OrgItemsList() {
               </div>
 
               <div className="flex items-center gap-2 flex-shrink-0">
-                <span className="text-sm font-bold text-gray-800 min-w-[24px] text-right">
+                <span className={`text-sm font-bold min-w-[24px] text-right ${
+                  item.max_capacity && item.stock >= item.max_capacity
+                    ? 'text-red-500'
+                    : item.max_capacity && item.stock >= item.max_capacity * 0.9
+                    ? 'text-amber-500'
+                    : 'text-gray-800'
+                }`}>
                   {item.stock}
                 </span>
+                {item.max_capacity && item.stock >= item.max_capacity && (
+                  <span title="At or over capacity" className="text-base leading-none">🔴</span>
+                )}
                 {item.carbon_kg_per_item && (
                   <span className="text-base" title={`${item.carbon_kg_total} kg CO₂ saved`}>🌱</span>
                 )}
