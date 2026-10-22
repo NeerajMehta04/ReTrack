@@ -8,12 +8,21 @@ import toast from 'react-hot-toast'
 
 type Item = { id: string; name: string }
 
+type Condition = 'good' | 'fair' | 'poor'
+
 type UpdateRow = {
   item_id: string | null
   item_name: string
   direction: 'in' | 'out'
   quantity: number
+  condition: Condition | null
 }
+
+const CONDITIONS: { value: Condition; label: string }[] = [
+  { value: 'good', label: 'Good' },
+  { value: 'fair', label: 'Fair' },
+  { value: 'poor', label: 'Poor' },
+]
 
 type Stage = 'idle' | 'recording' | 'processing' | 'confirming'
 
@@ -69,8 +78,8 @@ export default function VoiceLogButton({ onLogged, offset = 'bottom-20 right-4' 
     setTranscript(data.transcript ?? '')
     setUpdates(
       data.updates?.length
-        ? data.updates
-        : [{ item_id: null, item_name: '', direction: 'in' as const, quantity: 1 }]
+        ? data.updates.map((u: UpdateRow) => ({ ...u, condition: null }))
+        : [{ item_id: null, item_name: '', direction: 'in' as const, quantity: 1, condition: null }]
     )
     setStage('confirming')
   }, [items])
@@ -100,7 +109,7 @@ export default function VoiceLogButton({ onLogged, offset = 'bottom-20 right-4' 
   }, [processAudio])
 
   const addRow = () =>
-    setUpdates(u => [...u, { item_id: null, item_name: '', direction: 'in', quantity: 1 }])
+    setUpdates(u => [...u, { item_id: null, item_name: '', direction: 'in', quantity: 1, condition: null }])
 
   const removeRow = (i: number) =>
     setUpdates(u => u.filter((_, idx) => idx !== i))
@@ -123,6 +132,7 @@ export default function VoiceLogButton({ onLogged, offset = 'bottom-20 right-4' 
       amount: u.quantity,
       comment: `Voice: "${transcript}"`,
       org_id: org.id,
+      ...(u.condition ? { condition: u.condition } : {}),
     }))
     const { error } = await supabase.from('logs').insert(inserts)
     setConfirming(false)
@@ -204,49 +214,70 @@ export default function VoiceLogButton({ onLogged, offset = 'bottom-20 right-4' 
             {/* Update rows (scrollable) */}
             <div className="flex-1 overflow-y-auto px-5 py-4 space-y-3">
               {updates.map((row, i) => (
-                <div key={i} className="flex items-center gap-2">
-                  {/* Item dropdown */}
-                  <select
-                    value={row.item_id ?? ''}
-                    onChange={e => handleItemChange(i, e.target.value)}
-                    className="flex-1 min-w-0 px-2 py-2 text-sm rounded-xl focus:outline-none focus:ring-1 focus:ring-primary bg-white appearance-none"
-                    style={{ border: '0.5px solid #E5E7EB' }}
-                  >
-                    <option value="">Pick item…</option>
-                    {items.map(it => (
-                      <option key={it.id} value={it.id}>{it.name}</option>
-                    ))}
-                  </select>
+                <div key={i} className="space-y-2" style={{ borderBottom: '0.5px solid #F5F5F5', paddingBottom: '12px' }}>
+                  {/* Main row */}
+                  <div className="flex items-center gap-2">
+                    {/* Item dropdown */}
+                    <select
+                      value={row.item_id ?? ''}
+                      onChange={e => handleItemChange(i, e.target.value)}
+                      className="flex-1 min-w-0 px-2 py-2 text-sm rounded-xl focus:outline-none focus:ring-1 focus:ring-primary bg-white appearance-none"
+                      style={{ border: '0.5px solid #E5E7EB' }}
+                    >
+                      <option value="">Pick item…</option>
+                      {items.map(it => (
+                        <option key={it.id} value={it.id}>{it.name}</option>
+                      ))}
+                    </select>
 
-                  {/* Quantity */}
-                  <input
-                    type="number"
-                    min={1}
-                    value={row.quantity}
-                    onChange={e => updateRow(i, { quantity: Math.max(1, parseInt(e.target.value) || 1) })}
-                    className="w-14 px-2 py-2 text-sm text-center rounded-xl focus:outline-none focus:ring-1 focus:ring-primary"
-                    style={{ border: '0.5px solid #E5E7EB' }}
-                  />
+                    {/* Quantity */}
+                    <input
+                      type="number"
+                      min={1}
+                      value={row.quantity}
+                      onChange={e => updateRow(i, { quantity: Math.max(1, parseInt(e.target.value) || 1) })}
+                      className="w-14 px-2 py-2 text-sm text-center rounded-xl focus:outline-none focus:ring-1 focus:ring-primary"
+                      style={{ border: '0.5px solid #E5E7EB' }}
+                    />
 
-                  {/* In/Out toggle */}
-                  <button
-                    onClick={() => updateRow(i, { direction: row.direction === 'in' ? 'out' : 'in' })}
-                    className={`px-2.5 py-2 rounded-xl text-xs font-bold transition-colors flex-shrink-0 ${
-                      row.direction === 'in'
-                        ? 'bg-green-50 text-green-700'
-                        : 'bg-red-50 text-red-600'
-                    }`}
-                    style={{ border: `0.5px solid ${row.direction === 'in' ? '#86EFAC' : '#FCA5A5'}` }}
-                  >
-                    {row.direction === 'in' ? 'In' : 'Out'}
-                  </button>
-
-                  {/* Remove row */}
-                  {updates.length > 1 && (
-                    <button onClick={() => removeRow(i)} className="text-gray-300 hover:text-gray-500 flex-shrink-0">
-                      <X className="w-4 h-4" />
+                    {/* In/Out toggle */}
+                    <button
+                      onClick={() => updateRow(i, { direction: row.direction === 'in' ? 'out' : 'in' })}
+                      className={`px-2.5 py-2 rounded-xl text-xs font-bold transition-colors flex-shrink-0 ${
+                        row.direction === 'in'
+                          ? 'bg-green-50 text-green-700'
+                          : 'bg-red-50 text-red-600'
+                      }`}
+                      style={{ border: `0.5px solid ${row.direction === 'in' ? '#86EFAC' : '#FCA5A5'}` }}
+                    >
+                      {row.direction === 'in' ? 'In' : 'Out'}
                     </button>
-                  )}
+
+                    {/* Remove row */}
+                    {updates.length > 1 && (
+                      <button onClick={() => removeRow(i)} className="text-gray-300 hover:text-gray-500 flex-shrink-0">
+                        <X className="w-4 h-4" />
+                      </button>
+                    )}
+                  </div>
+
+                  {/* Condition chips (optional) */}
+                  <div className="flex items-center gap-1.5">
+                    <span className="text-[10px] text-gray-400 mr-0.5">Condition:</span>
+                    {CONDITIONS.map(c => (
+                      <button
+                        key={c.value}
+                        onClick={() => updateRow(i, { condition: row.condition === c.value ? null : c.value })}
+                        className={`px-2.5 py-1 rounded-lg text-[11px] font-semibold transition-colors ${
+                          row.condition === c.value
+                            ? 'bg-primary text-white'
+                            : 'bg-gray-100 text-gray-500 hover:bg-gray-200'
+                        }`}
+                      >
+                        {c.label}
+                      </button>
+                    ))}
+                  </div>
                 </div>
               ))}
 
