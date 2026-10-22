@@ -156,6 +156,19 @@ export default function ItemModal({ open, onClose, categories, item, onSaved, or
           .single()
         if (createErr) throw createErr
 
+        // Log initial stock for traceability
+        const initialStock = Math.max(0, parseInt(stock) || 0)
+        if (initialStock > 0) {
+          const { error: logErr } = await supabase.from('logs').insert({
+            item_id: newItem.id,
+            direction: 'in',
+            amount: initialStock,
+            comment: 'Initial stock',
+            ...(orgId ? { org_id: orgId } : {}),
+          })
+          if (logErr) console.error('Failed to log initial stock:', logErr)
+        }
+
         if (imageFile) {
           const imageUrl = await uploadImage(newItem.id, imageFile)
           await supabase.from('items').update({ image_url: imageUrl }).eq('id', newItem.id)
