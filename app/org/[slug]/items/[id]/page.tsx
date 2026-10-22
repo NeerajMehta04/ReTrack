@@ -283,16 +283,16 @@ export default function OrgItemDetailPage() {
         </label>
         <div className="flex-1 min-w-0">
           <div className="flex items-start justify-between gap-2">
-            <div className="min-w-0">
+            <div className="min-w-0 overflow-hidden">
               <h2 className="text-lg font-bold text-gray-900 truncate">{item.name}</h2>
               {item.description && <p className="text-xs text-gray-400 truncate">{item.description}</p>}
               {item.categories && (
-                <span className="inline-flex items-center gap-1 mt-1 px-2 py-0.5 rounded-full text-xs font-semibold text-white" style={{ backgroundColor: item.categories.color }}>
-                  {item.categories.icon} {item.categories.name}
+                <span className="inline-flex items-center gap-1 mt-1 px-2 py-0.5 rounded-full text-xs font-semibold text-white max-w-full truncate" style={{ backgroundColor: item.categories.color }}>
+                  {item.categories.icon} <span className="truncate">{item.categories.name}</span>
                 </span>
               )}
             </div>
-            <div className="text-right flex-shrink-0">
+            <div className="text-right flex-shrink-0 ml-2">
               <span className={`text-3xl font-black ${
                 item.max_capacity && item.stock >= item.max_capacity ? 'text-red-500'
                 : item.max_capacity && item.stock >= item.max_capacity * 0.9 ? 'text-amber-500'
