@@ -2,7 +2,7 @@ export const dynamic = 'force-dynamic'
 
 import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
-import { OrgContext } from '@/lib/org-context'
+import { OrgProvider } from '@/lib/org-context'
 import BottomNav from '@/components/BottomNav'
 import Toaster from '@/components/Toaster'
 import type { Organization } from '@/types'
@@ -49,12 +49,12 @@ export default async function OrgLayout({ children, params }: Props) {
   const basePath = `/org/${slug}`
 
   return (
-    <OrgContext.Provider value={{ org: org as Organization, isAdmin }}>
+    <OrgProvider org={org as Organization} isAdmin={isAdmin}>
       <div className="relative min-h-screen bg-white max-w-md mx-auto" style={{ boxShadow: '0 0 0 0.5px #F0D0DC' }}>
         <main className="pb-16 min-h-screen">{children}</main>
         <BottomNav basePath={basePath} showSettings={isAdmin} />
         <Toaster />
       </div>
-    </OrgContext.Provider>
+    </OrgProvider>
   )
 }
