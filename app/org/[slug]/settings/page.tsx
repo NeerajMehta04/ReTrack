@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 import { useOrg } from '@/lib/org-context'
 import type { OrgMember } from '@/types'
-import { UserPlus, Trash2, ArrowLeft, Check } from 'lucide-react'
+import { UserPlus, Trash2, ArrowLeft, Check, LogOut } from 'lucide-react'
 import toast from 'react-hot-toast'
 
 export default function OrgSettingsPage() {
@@ -209,6 +209,21 @@ export default function OrgSettingsPage() {
               )}
             </div>
           )}
+        </section>
+
+        {/* Sign out */}
+        <section>
+          <button
+            onClick={async () => {
+              await supabase.auth.signOut()
+              router.push('/login')
+            }}
+            className="w-full flex items-center justify-center gap-2 py-3 rounded-xl text-sm font-semibold text-red-500 hover:bg-red-50 transition-colors"
+            style={{ border: '0.5px solid #FCA5A5' }}
+          >
+            <LogOut className="w-4 h-4" />
+            Sign out
+          </button>
         </section>
       </div>
     </div>
