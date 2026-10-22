@@ -4,8 +4,10 @@ import { useState, useEffect } from 'react'
 import Image from 'next/image'
 import { createClient } from '@/lib/supabase/client'
 import type { Item, Category } from '@/types'
-import { X, ImagePlus, AlertTriangle } from 'lucide-react'
+import { X, ImagePlus, AlertTriangle, Plus, Check } from 'lucide-react'
 import toast from 'react-hot-toast'
+
+const CAT_COLORS = ['#8B5CF6','#F59E0B','#3B82F6','#10B981','#EF4444','#EC4899','#6B7280','#D4537E']
 
 interface Props {
   open: boolean
@@ -32,6 +34,14 @@ export default function ItemModal({ open, onClose, categories, item, onSaved, or
   const [imagePreview, setImagePreview] = useState('')
   const [saving, setSaving] = useState(false)
 
+  // Inline new-category state
+  const [localCategories, setLocalCategories] = useState<Category[]>([])
+  const [showNewCat, setShowNewCat] = useState(false)
+  const [newCatName, setNewCatName] = useState('')
+  const [newCatIcon, setNewCatIcon] = useState('📦')
+  const [newCatColor, setNewCatColor] = useState(CAT_COLORS[0])
+  const [creatingCat, setCreatingCat] = useState(false)
+
   // Warning sheet state
   const [showWarning, setShowWarning] = useState(false)
   const [pendingSave, setPendingSave] = useState<PendingSave | null>(null)
@@ -50,8 +60,13 @@ export default function ItemModal({ open, onClose, categories, item, onSaved, or
       setShowWarning(false)
       setPendingSave(null)
       setCorrectionNote('')
+      setLocalCategories(categories)
+      setShowNewCat(false)
+      setNewCatName('')
+      setNewCatIcon('📦')
+      setNewCatColor(CAT_COLORS[0])
     }
-  }, [open, item])
+  }, [open, item, categories])
 
   useEffect(() => {
     if (open) document.body.style.overflow = 'hidden'
@@ -72,6 +87,33 @@ export default function ItemModal({ open, onClose, categories, item, onSaved, or
     const { error } = await supabase.storage.from('items').upload(path, file)
     if (error) throw error
     return supabase.storage.from('items').getPublicUrl(path).data.publicUrl
+  }
+
+  // ── Inline category creation ───────────────────────────────────────────────
+  async function handleCreateCategory(e: React.FormEvent) {
+    e.preventDefault()
+    if (!newCatName.trim()) { toast.error('Category name required'); return }
+    if (!orgId) return
+    setCreatingCat(true)
+    try {
+      const { data: cat, error } = await supabase
+        .from('categories')
+        .insert({ name: newCatName.trim(), icon: newCatIcon || '📦', color: newCatColor, org_id: orgId })
+        .select()
+        .single()
+      if (error) throw error
+      setLocalCategories(prev => [...prev, cat])
+      setCategoryId(cat.id)
+      setShowNewCat(false)
+      setNewCatName('')
+      setNewCatIcon('📦')
+      setNewCatColor(CAT_COLORS[0])
+      toast.success(`"${cat.name}" created`)
+    } catch (err: unknown) {
+      toast.error(err instanceof Error ? err.message : 'Failed to create category')
+    } finally {
+      setCreatingCat(false)
+    }
   }
 
   // ── Shared update executor ─────────────────────────────────────────────────
@@ -364,10 +406,88 @@ export default function ItemModal({ open, onClose, categories, item, onSaved, or
               style={{ border: '0.5px solid #E5E7EB' }}
             >
               <option value="">— No category —</option>
-              {categories.map(c => (
+              {localCategories.map(c => (
                 <option key={c.id} value={c.id}>{c.icon} {c.name}</option>
               ))}
             </select>
+
+            {/* Inline new category */}
+            {orgId && !showNewCat && (
+              <button
+                type="button"
+                onClick={() => setShowNewCat(true)}
+                className="mt-1.5 flex items-center gap-1 text-[11px] font-semibold text-primary hover:text-primary-dark transition-colors"
+              >
+                <Plus className="w-3 h-3" />
+                Create category
+              </button>
+            )}
+
+            {showNewCat && (
+              <form
+                onSubmit={handleCreateCategory}
+                className="mt-2 p-3 rounded-xl space-y-2.5"
+                style={{ border: '0.5px solid #F0D0DC', background: '#FFF5F8' }}
+              >
+                <p className="text-[11px] font-bold text-primary uppercase tracking-wide">New category</p>
+
+                {/* Name + emoji */}
+                <div className="flex gap-2">
+                  <input
+                    type="text"
+                    value={newCatIcon}
+                    onChange={e => setNewCatIcon(e.target.value)}
+                    maxLength={2}
+                    placeholder="📦"
+                    className="w-12 px-2 py-2 rounded-xl text-center text-base bg-white focus:outline-none focus:ring-1 focus:ring-primary"
+                    style={{ border: '0.5px solid #E5E7EB' }}
+                  />
+                  <input
+                    type="text"
+                    value={newCatName}
+                    onChange={e => setNewCatName(e.target.value)}
+                    placeholder="Category name"
+                    autoFocus
+                    className="flex-1 px-3 py-2 rounded-xl text-sm bg-white focus:outline-none focus:ring-1 focus:ring-primary"
+                    style={{ border: '0.5px solid #E5E7EB' }}
+                  />
+                </div>
+
+                {/* Colour swatches */}
+                <div className="flex gap-1.5 flex-wrap">
+                  {CAT_COLORS.map(c => (
+                    <button
+                      key={c}
+                      type="button"
+                      onClick={() => setNewCatColor(c)}
+                      className="w-6 h-6 rounded-full flex items-center justify-center transition-transform hover:scale-110"
+                      style={{ backgroundColor: c }}
+                    >
+                      {newCatColor === c && <Check className="w-3 h-3 text-white" strokeWidth={3} />}
+                    </button>
+                  ))}
+                </div>
+
+                {/* Actions */}
+                <div className="flex gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setShowNewCat(false)}
+                    className="flex-1 py-2 rounded-xl text-xs font-semibold text-gray-500 bg-white hover:bg-gray-50 transition-colors"
+                    style={{ border: '0.5px solid #E5E7EB' }}
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="submit"
+                    disabled={creatingCat || !newCatName.trim()}
+                    className="flex-1 py-2 bg-primary text-white rounded-xl text-xs font-semibold disabled:opacity-40 hover:bg-primary-dark transition-colors"
+                  >
+                    {creatingCat ? 'Creating…' : 'Create & select'}
+                  </button>
+                </div>
+              </form>
+            )}
           </div>
 
           {/* Stock */}
