@@ -76,6 +76,7 @@ CREATE POLICY "org_delete" ON public.organizations
 -- org_members: admins can insert/delete; any member can read their org's rows
 DROP POLICY IF EXISTS "org_members_read"   ON public.org_members;
 DROP POLICY IF EXISTS "org_members_insert" ON public.org_members;
+DROP POLICY IF EXISTS "org_members_update" ON public.org_members;
 DROP POLICY IF EXISTS "org_members_delete" ON public.org_members;
 
 CREATE POLICY "org_members_read" ON public.org_members
@@ -92,6 +93,27 @@ CREATE POLICY "org_members_read" ON public.org_members
 
 CREATE POLICY "org_members_insert" ON public.org_members
   FOR INSERT TO authenticated
+  WITH CHECK (
+    org_id IN (
+      SELECT org_id FROM public.org_members
+      WHERE email = (auth.jwt() ->> 'email') AND role = 'admin'
+    )
+    OR org_id IN (
+      SELECT id FROM public.organizations WHERE owner_id = auth.uid()
+    )
+  );
+
+CREATE POLICY "org_members_update" ON public.org_members
+  FOR UPDATE TO authenticated
+  USING (
+    org_id IN (
+      SELECT org_id FROM public.org_members
+      WHERE email = (auth.jwt() ->> 'email') AND role = 'admin'
+    )
+    OR org_id IN (
+      SELECT id FROM public.organizations WHERE owner_id = auth.uid()
+    )
+  )
   WITH CHECK (
     org_id IN (
       SELECT org_id FROM public.org_members

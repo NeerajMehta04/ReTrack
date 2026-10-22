@@ -58,8 +58,10 @@ export default function NewOrgPage() {
         if (orgErr.code === '23505') {
           toast.error('That URL is already taken — try a different one')
         } else {
-          throw orgErr
+          toast.error(orgErr.message || 'Failed to create organisation')
+          console.error('Org create error:', orgErr)
         }
+        setSaving(false)
         return
       }
 
@@ -73,7 +75,9 @@ export default function NewOrgPage() {
       toast.success('Organisation created!')
       router.push(`/org/${org.slug}/settings`)
     } catch (err: unknown) {
-      toast.error(err instanceof Error ? err.message : 'Failed to create organisation')
+      const msg = err instanceof Error ? err.message : (err as { message?: string })?.message ?? 'Failed to create organisation'
+      console.error('Create org error:', err)
+      toast.error(msg)
     } finally {
       setSaving(false)
     }
