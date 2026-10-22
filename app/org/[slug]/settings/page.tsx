@@ -5,7 +5,8 @@ import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 import { useOrg } from '@/lib/org-context'
 import type { OrgMember } from '@/types'
-import { UserPlus, Trash2, ArrowLeft, Check, LogOut, MoreHorizontal, Shield, ShieldOff, User } from 'lucide-react'
+import { UserPlus, Trash2, ArrowLeft, Check, LogOut, MoreHorizontal, Shield, ShieldOff, User, Building2, Plus } from 'lucide-react'
+import Link from 'next/link'
 import toast from 'react-hot-toast'
 import { formatRelativeTime } from '@/lib/utils'
 
@@ -109,14 +110,6 @@ export default function OrgSettingsPage() {
     fetchMembers()
   }
 
-  if (!isAdmin) {
-    return (
-      <div className="flex flex-col min-h-full items-center justify-center p-8 text-center">
-        <p className="text-gray-500 text-sm">Only admins can access settings.</p>
-      </div>
-    )
-  }
-
   return (
     <div className="flex flex-col min-h-full">
       {/* Header */}
@@ -134,119 +127,146 @@ export default function OrgSettingsPage() {
       </div>
 
       <div className="px-4 py-5 space-y-6">
-        {/* Organisation name */}
-        <section>
-          <h2 className="text-xs font-bold text-gray-500 uppercase tracking-wide mb-3">Organisation</h2>
-          <form onSubmit={saveName} className="flex gap-2">
-            <input
-              type="text"
-              value={orgName}
-              onChange={e => setOrgName(e.target.value)}
-              className="flex-1 px-3 py-2.5 rounded-xl text-sm focus:outline-none focus:ring-1 focus:ring-primary"
-              style={{ border: '0.5px solid #E5E7EB' }}
-            />
-            <button
-              type="submit"
-              disabled={savingName || orgName.trim() === org.name}
-              className="px-4 py-2.5 bg-primary text-white rounded-xl text-sm font-semibold disabled:opacity-40 hover:bg-primary-dark transition-colors flex items-center gap-1.5"
-            >
-              <Check className="w-3.5 h-3.5" />
-              Save
-            </button>
-          </form>
-          <p className="text-[10px] text-gray-400 mt-1.5">
-            Workspace URL: <span className="font-mono text-gray-500">/org/{org.slug}</span>
-          </p>
-        </section>
+        {/* Organisation name — admin only */}
+        {isAdmin && (
+          <section>
+            <h2 className="text-xs font-bold text-gray-500 uppercase tracking-wide mb-3">Organisation</h2>
+            <form onSubmit={saveName} className="flex gap-2">
+              <input
+                type="text"
+                value={orgName}
+                onChange={e => setOrgName(e.target.value)}
+                className="flex-1 px-3 py-2.5 rounded-xl text-sm focus:outline-none focus:ring-1 focus:ring-primary"
+                style={{ border: '0.5px solid #E5E7EB' }}
+              />
+              <button
+                type="submit"
+                disabled={savingName || orgName.trim() === org.name}
+                className="px-4 py-2.5 bg-primary text-white rounded-xl text-sm font-semibold disabled:opacity-40 hover:bg-primary-dark transition-colors flex items-center gap-1.5"
+              >
+                <Check className="w-3.5 h-3.5" />
+                Save
+              </button>
+            </form>
+            <p className="text-[10px] text-gray-400 mt-1.5">
+              Workspace URL: <span className="font-mono text-gray-500">/org/{org.slug}</span>
+            </p>
+          </section>
+        )}
 
-        {/* Members */}
-        <section>
-          <div className="flex items-center justify-between mb-1">
-            <h2 className="text-xs font-bold text-gray-500 uppercase tracking-wide">Members</h2>
-            <span className="text-[10px] text-gray-400">{members.length} {members.length === 1 ? 'person' : 'people'}</span>
-          </div>
-          <p className="text-xs text-gray-400 mb-3">
-            Only these email addresses can access this workspace.
-          </p>
-
-          {/* Add member */}
-          <form onSubmit={addMember} className="flex gap-2 mb-4">
-            <input
-              type="email"
-              value={newEmail}
-              onChange={e => setNewEmail(e.target.value)}
-              placeholder="new@organisation.edu"
-              className="flex-1 px-3 py-2.5 rounded-xl text-sm focus:outline-none focus:ring-1 focus:ring-primary"
-              style={{ border: '0.5px solid #E5E7EB' }}
-            />
-            <button
-              type="submit"
-              disabled={addingMember || !newEmail.trim()}
-              className="px-3 py-2.5 bg-primary text-white rounded-xl text-sm font-semibold disabled:opacity-40 hover:bg-primary-dark transition-colors flex items-center gap-1.5"
-            >
-              <UserPlus className="w-3.5 h-3.5" />
-              Add
-            </button>
-          </form>
-
-          {/* Member list */}
-          {loadingMembers ? (
-            <div className="space-y-2">
-              {Array.from({ length: 3 }).map((_, i) => (
-                <div key={i} className="h-16 rounded-xl bg-gray-100 animate-pulse" />
-              ))}
+        {/* Members — admin only */}
+        {isAdmin && (
+          <section>
+            <div className="flex items-center justify-between mb-1">
+              <h2 className="text-xs font-bold text-gray-500 uppercase tracking-wide">Members</h2>
+              <span className="text-[10px] text-gray-400">{members.length} {members.length === 1 ? 'person' : 'people'}</span>
             </div>
-          ) : (
-            <div className="space-y-2">
-              {members.map(member => {
-                const isSelf = member.email === currentEmail
-                return (
-                  <div
-                    key={member.id}
-                    className="flex items-center justify-between px-3 py-3 rounded-xl bg-white"
-                    style={{ border: '0.5px solid #E5E7EB' }}
-                  >
-                    <div className="flex items-center gap-2.5 min-w-0">
-                      <div className="w-8 h-8 rounded-full bg-primary-light flex items-center justify-center flex-shrink-0">
-                        <User className="w-4 h-4 text-primary" />
-                      </div>
-                      <div className="min-w-0">
-                        <div className="flex items-center gap-1.5 flex-wrap">
-                          <p className="text-sm font-semibold text-gray-800 truncate">{member.email}</p>
-                          {isSelf && <span className="text-[10px] text-gray-400">(you)</span>}
+            <p className="text-xs text-gray-400 mb-3">
+              Only these email addresses can access this workspace.
+            </p>
+
+            {/* Add member */}
+            <form onSubmit={addMember} className="flex gap-2 mb-4">
+              <input
+                type="email"
+                value={newEmail}
+                onChange={e => setNewEmail(e.target.value)}
+                placeholder="new@organisation.edu"
+                className="flex-1 px-3 py-2.5 rounded-xl text-sm focus:outline-none focus:ring-1 focus:ring-primary"
+                style={{ border: '0.5px solid #E5E7EB' }}
+              />
+              <button
+                type="submit"
+                disabled={addingMember || !newEmail.trim()}
+                className="px-3 py-2.5 bg-primary text-white rounded-xl text-sm font-semibold disabled:opacity-40 hover:bg-primary-dark transition-colors flex items-center gap-1.5"
+              >
+                <UserPlus className="w-3.5 h-3.5" />
+                Add
+              </button>
+            </form>
+
+            {/* Member list */}
+            {loadingMembers ? (
+              <div className="space-y-2">
+                {Array.from({ length: 3 }).map((_, i) => (
+                  <div key={i} className="h-16 rounded-xl bg-gray-100 animate-pulse" />
+                ))}
+              </div>
+            ) : (
+              <div className="space-y-2">
+                {members.map(member => {
+                  const isSelf = member.email === currentEmail
+                  return (
+                    <div
+                      key={member.id}
+                      className="flex items-center justify-between px-3 py-3 rounded-xl bg-white"
+                      style={{ border: '0.5px solid #E5E7EB' }}
+                    >
+                      <div className="flex items-center gap-2.5 min-w-0">
+                        <div className="w-8 h-8 rounded-full bg-primary-light flex items-center justify-center flex-shrink-0">
+                          <User className="w-4 h-4 text-primary" />
                         </div>
-                        <div className="flex items-center gap-1.5 mt-0.5">
-                          <span className={`inline-flex items-center gap-0.5 text-[10px] font-semibold px-1.5 py-0.5 rounded-full ${
-                            member.role === 'admin'
-                              ? 'bg-primary-light text-primary'
-                              : 'bg-gray-100 text-gray-500'
-                          }`}>
-                            {member.role === 'admin' && <Shield className="w-2.5 h-2.5" />}
-                            {member.role === 'admin' ? 'Admin' : 'Member'}
-                          </span>
-                          <span className="text-[10px] text-gray-400">· Added {formatRelativeTime(member.added_at)}</span>
+                        <div className="min-w-0">
+                          <div className="flex items-center gap-1.5 flex-wrap">
+                            <p className="text-sm font-semibold text-gray-800 truncate">{member.email}</p>
+                            {isSelf && <span className="text-[10px] text-gray-400">(you)</span>}
+                          </div>
+                          <div className="flex items-center gap-1.5 mt-0.5">
+                            <span className={`inline-flex items-center gap-0.5 text-[10px] font-semibold px-1.5 py-0.5 rounded-full ${
+                              member.role === 'admin'
+                                ? 'bg-primary-light text-primary'
+                                : 'bg-gray-100 text-gray-500'
+                            }`}>
+                              {member.role === 'admin' && <Shield className="w-2.5 h-2.5" />}
+                              {member.role === 'admin' ? 'Admin' : 'Member'}
+                            </span>
+                            <span className="text-[10px] text-gray-400">· Added {formatRelativeTime(member.added_at)}</span>
+                          </div>
                         </div>
                       </div>
+                      {!isSelf && (
+                        <button
+                          onClick={() => setActionTarget(member)}
+                          className="w-8 h-8 flex-shrink-0 rounded-full flex items-center justify-center text-gray-400 hover:bg-gray-100 transition-colors ml-2"
+                        >
+                          <MoreHorizontal className="w-4 h-4" />
+                        </button>
+                      )}
                     </div>
-                    {!isSelf && (
-                      <button
-                        onClick={() => setActionTarget(member)}
-                        className="w-8 h-8 flex-shrink-0 rounded-full flex items-center justify-center text-gray-400 hover:bg-gray-100 transition-colors ml-2"
-                      >
-                        <MoreHorizontal className="w-4 h-4" />
-                      </button>
-                    )}
-                  </div>
-                )
-              })}
-              {members.length === 0 && (
-                <p className="text-sm text-gray-400 text-center py-4">No members yet</p>
-              )}
-            </div>
-          )}
+                  )
+                })}
+                {members.length === 0 && (
+                  <p className="text-sm text-gray-400 text-center py-4">No members yet</p>
+                )}
+              </div>
+            )}
+          </section>
+        )}
+
+        {/* Workspace actions — all members */}
+        <section>
+          <h2 className="text-xs font-bold text-gray-500 uppercase tracking-wide mb-3">Workspace</h2>
+          <div className="space-y-2">
+            <Link
+              href="/org/choose"
+              className="w-full flex items-center gap-3 px-4 py-3 rounded-xl bg-white hover:bg-gray-50 transition-colors"
+              style={{ border: '0.5px solid #E5E7EB' }}
+            >
+              <Building2 className="w-4 h-4 text-gray-400" />
+              <span className="text-sm font-medium text-gray-700">Switch workspace</span>
+            </Link>
+            <Link
+              href="/org/new"
+              className="w-full flex items-center gap-3 px-4 py-3 rounded-xl bg-white hover:bg-gray-50 transition-colors"
+              style={{ border: '0.5px solid #E5E7EB' }}
+            >
+              <Plus className="w-4 h-4 text-gray-400" />
+              <span className="text-sm font-medium text-gray-700">Create new workspace</span>
+            </Link>
+          </div>
         </section>
 
-        {/* Sign out */}
+        {/* Sign out — all members */}
         <section>
           <button
             onClick={async () => {

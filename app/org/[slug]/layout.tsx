@@ -52,7 +52,7 @@ export default async function OrgLayout({ children, params }: Props) {
     <OrgProvider org={org as Organization} isAdmin={isAdmin}>
       <div className="relative min-h-screen bg-white max-w-md mx-auto" style={{ boxShadow: '0 0 0 0.5px #F0D0DC' }}>
         <main className="pb-16 min-h-screen">{children}</main>
-        <BottomNav basePath={basePath} showSettings={isAdmin} />
+        <BottomNav basePath={basePath} showSettings={true} />
         <Toaster />
       </div>
     </OrgProvider>
