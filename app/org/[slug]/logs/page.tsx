@@ -184,7 +184,7 @@ export default function OrgLogsPage() {
         </>
       )}
 
-      <VoiceLogButton onLogged={fetchLogs} offset="bottom-36 right-4" />
+      <VoiceLogButton onLogged={fetchLogs} offset="bottom-36 right-4" orgId={org.id} />
       <LogModal open={modalOpen} onClose={() => setModalOpen(false)} items={items} groups={groups} onSaved={fetchLogs} orgId={org.id} />
     </div>
   )

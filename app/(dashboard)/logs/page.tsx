@@ -11,6 +11,7 @@ import {
 import { formatDate, downloadCSV } from '@/lib/utils'
 import { TableRowSkeleton } from '@/components/ui/Skeleton'
 import LogModal from '@/components/logs/LogModal'
+import VoiceLogButton from '@/components/VoiceLogButton'
 
 type SortField = 'created_at' | 'amount'
 type SortDir = 'asc' | 'desc'
@@ -302,6 +303,7 @@ export default function LogsPage() {
       )}
 
       {/* New log modal */}
+      <VoiceLogButton onLogged={fetchLogs} offset="bottom-36 right-4" />
       <LogModal
         open={modalOpen}
         onClose={() => setModalOpen(false)}

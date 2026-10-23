@@ -203,7 +203,7 @@ function OrgItemsList() {
         onSaved={() => { fetchItems() }}
         orgId={org.id}
       />
-      <VoiceLogButton onLogged={fetchItems} />
+      <VoiceLogButton onLogged={fetchItems} orgId={org.id} />
     </div>
   )
 }

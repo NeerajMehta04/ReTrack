@@ -3,7 +3,6 @@
 import { useState, useRef, useEffect, useCallback } from 'react'
 import { Mic, MicOff, Check, Plus, X, Loader2 } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
-import { useOrg } from '@/lib/org-context'
 import type { Category } from '@/types'
 import toast from 'react-hot-toast'
 
@@ -43,8 +42,7 @@ const CONDITIONS: { value: Condition; label: string; activeClass: string }[] = [
 type Stage = 'idle' | 'recording' | 'processing' | 'confirming'
 
 // ── Component ─────────────────────────────────────────────────────────────────
-export default function VoiceLogButton({ onLogged, offset = 'bottom-20 right-4' }: { onLogged?: () => void; offset?: string }) {
-  const { org } = useOrg()
+export default function VoiceLogButton({ onLogged, offset = 'bottom-20 right-4', orgId }: { onLogged?: () => void; offset?: string; orgId?: string | null }) {
   const supabase = createClient()
 
   // Core state
@@ -76,11 +74,15 @@ export default function VoiceLogButton({ onLogged, offset = 'bottom-20 right-4' 
 
   // Fetch items + categories on mount
   useEffect(() => {
-    supabase.from('items').select('id, name').eq('org_id', org.id).is('deleted_at', null).order('name')
-      .then(({ data }) => setItems(data ?? []))
-    supabase.from('categories').select('*').eq('org_id', org.id).order('name')
-      .then(({ data }) => setLocalCategories(data ?? []))
-  }, [org.id])
+    const itemsQuery = supabase.from('items').select('id, name').is('deleted_at', null).order('name')
+    const catsQuery  = supabase.from('categories').select('*').order('name')
+    if (orgId) {
+      itemsQuery.eq('org_id', orgId)
+      catsQuery.eq('org_id', orgId)
+    }
+    itemsQuery.then(({ data }) => setItems(data ?? []))
+    catsQuery.then(({ data }) => setLocalCategories(data ?? []))
+  }, [orgId])
 
   // Recording timer
   useEffect(() => {
@@ -180,7 +182,7 @@ export default function VoiceLogButton({ onLogged, offset = 'bottom-20 right-4' 
     try {
       const { data: cat, error } = await supabase
         .from('categories')
-        .insert({ name: newCatName.trim(), icon: newCatIcon || '📦', color: newCatColor, org_id: org.id })
+        .insert({ name: newCatName.trim(), icon: newCatIcon || '📦', color: newCatColor, ...(orgId ? { org_id: orgId } : {}) })
         .select()
         .single()
       if (error) throw error
@@ -208,7 +210,7 @@ export default function VoiceLogButton({ onLogged, offset = 'bottom-20 right-4' 
     try {
       const { data: newItem, error } = await supabase
         .from('items')
-        .insert({ name: newItemName.trim(), category_id: newItemCatId || null, stock: 0, org_id: org.id })
+        .insert({ name: newItemName.trim(), category_id: newItemCatId || null, stock: 0, ...(orgId ? { org_id: orgId } : {}) })
         .select('id, name')
         .single()
       if (error) throw error
@@ -233,7 +235,7 @@ export default function VoiceLogButton({ onLogged, offset = 'bottom-20 right-4' 
       direction: u.direction,
       amount: u.quantity,
       comment: `Voice: "${transcript}"`,
-      org_id: org.id,
+      ...(orgId ? { org_id: orgId } : {}),
       ...(u.condition ? { condition: u.condition } : {}),
     }))
     const { error } = await supabase.from('logs').insert(inserts)
