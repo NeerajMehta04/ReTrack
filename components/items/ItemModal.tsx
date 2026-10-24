@@ -208,7 +208,7 @@ export default function ItemModal({ open, onClose, categories, item, onSaved, or
             name: name.trim(),
             description: description.trim() || null,
             category_id: categoryId || null,
-            stock: Math.max(0, parseInt(stock) || 0),
+            stock: 0,
             max_capacity: parseInt(maxCapacity) > 0 ? parseInt(maxCapacity) : null,
             ...(orgId ? { org_id: orgId } : {}),
           })
