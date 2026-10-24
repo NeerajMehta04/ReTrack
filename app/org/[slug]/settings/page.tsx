@@ -18,11 +18,16 @@ export default function OrgSettingsPage() {
   const supabase = createClient()
 
   const [orgName, setOrgName] = useState(org.name)
+  const [savedOrgName, setSavedOrgName] = useState(org.name)
+  const [editingOrgName, setEditingOrgName] = useState(false)
   const [savingName, setSavingName] = useState(false)
 
   const [isPublic, setIsPublic] = useState(org.is_public ?? false)
   const [orgDescription, setOrgDescription] = useState(org.description ?? '')
   const [orgLocation, setOrgLocation] = useState(org.location ?? '')
+  const [savedOrgDescription, setSavedOrgDescription] = useState(org.description ?? '')
+  const [savedOrgLocation, setSavedOrgLocation] = useState(org.location ?? '')
+  const [editingPublicProfile, setEditingPublicProfile] = useState(false)
   const [savingPublic, setSavingPublic] = useState(false)
 
   const [members, setMembers] = useState<OrgMember[]>([])
@@ -97,9 +102,19 @@ export default function OrgSettingsPage() {
       .from('organizations')
       .update({ name: orgName.trim() })
       .eq('id', org.id)
-    if (error) toast.error('Failed to update name')
-    else toast.success('Name updated')
+    if (error) {
+      toast.error('Failed to update name')
+    } else {
+      setSavedOrgName(orgName.trim())
+      setEditingOrgName(false)
+      toast.success('Name updated')
+    }
     setSavingName(false)
+  }
+
+  function cancelEditOrgName() {
+    setOrgName(savedOrgName)
+    setEditingOrgName(false)
   }
 
   async function togglePublic() {
@@ -124,9 +139,21 @@ export default function OrgSettingsPage() {
       .from('organizations')
       .update({ description: orgDescription.trim() || null, location: orgLocation.trim() || null })
       .eq('id', org.id)
-    if (error) toast.error('Failed to save profile')
-    else toast.success('Public profile updated')
+    if (error) {
+      toast.error('Failed to save profile')
+    } else {
+      setSavedOrgDescription(orgDescription.trim())
+      setSavedOrgLocation(orgLocation.trim())
+      setEditingPublicProfile(false)
+      toast.success('Public profile updated')
+    }
     setSavingPublic(false)
+  }
+
+  function cancelEditPublicProfile() {
+    setOrgDescription(savedOrgDescription)
+    setOrgLocation(savedOrgLocation)
+    setEditingPublicProfile(false)
   }
 
   async function addMember(e: React.FormEvent) {
@@ -266,23 +293,48 @@ export default function OrgSettingsPage() {
         {isAdmin && (
           <section>
             <h2 className="text-xs font-bold text-gray-500 uppercase tracking-wide mb-3">Organisation</h2>
-            <form onSubmit={saveName} className="flex gap-2">
-              <input
-                type="text"
-                value={orgName}
-                onChange={e => setOrgName(e.target.value)}
-                className="flex-1 px-3 py-2.5 rounded-xl text-sm focus:outline-none focus:ring-1 focus:ring-primary"
+            {editingOrgName ? (
+              <form onSubmit={saveName} className="space-y-2">
+                <input
+                  type="text"
+                  value={orgName}
+                  onChange={e => setOrgName(e.target.value)}
+                  autoFocus
+                  className="w-full px-3 py-2.5 rounded-xl text-sm focus:outline-none focus:ring-1 focus:ring-primary"
+                  style={{ border: '0.5px solid #E5E7EB' }}
+                />
+                <div className="flex gap-2">
+                  <button
+                    type="button"
+                    onClick={cancelEditOrgName}
+                    className="flex-1 py-2.5 rounded-xl text-sm font-semibold text-gray-500 bg-gray-100 hover:bg-gray-200 transition-colors"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="submit"
+                    disabled={savingName || !orgName.trim()}
+                    className="flex-1 py-2.5 bg-primary text-white rounded-xl text-sm font-semibold disabled:opacity-40 hover:bg-primary-dark transition-colors"
+                  >
+                    {savingName ? 'Saving…' : 'Save'}
+                  </button>
+                </div>
+              </form>
+            ) : (
+              <div
+                className="flex items-center justify-between px-4 py-3 rounded-xl bg-white"
                 style={{ border: '0.5px solid #E5E7EB' }}
-              />
-              <button
-                type="submit"
-                disabled={savingName || orgName.trim() === org.name}
-                className="px-4 py-2.5 bg-primary text-white rounded-xl text-sm font-semibold disabled:opacity-40 hover:bg-primary-dark transition-colors flex items-center gap-1.5"
               >
-                <Check className="w-3.5 h-3.5" />
-                Save
-              </button>
-            </form>
+                <p className="text-sm text-gray-700">{savedOrgName}</p>
+                <button
+                  onClick={() => setEditingOrgName(true)}
+                  className="flex items-center gap-1 text-xs font-semibold text-primary hover:text-primary-dark transition-colors"
+                >
+                  <Pencil className="w-3 h-3" />
+                  Edit
+                </button>
+              </div>
+            )}
             <p className="text-[10px] text-gray-400 mt-1.5">
               Workspace URL: <span className="font-mono text-gray-500">/org/{org.slug}</span>
             </p>
@@ -315,26 +367,19 @@ export default function OrgSettingsPage() {
               </button>
             </div>
 
-            {/* Description + location fields (shown when public) */}
+            {/* Description + location (shown when public) */}
             {isPublic && (
-              <form onSubmit={savePublicProfile} className="space-y-2">
-                <div>
-                  <label className="block text-[11px] font-bold text-gray-500 uppercase tracking-wide mb-1">
-                    Description <span className="font-normal normal-case">(optional)</span>
-                  </label>
+              editingPublicProfile ? (
+                <form onSubmit={savePublicProfile} className="space-y-2">
                   <input
                     type="text"
                     value={orgDescription}
                     onChange={e => setOrgDescription(e.target.value)}
                     placeholder="e.g. We accept furniture donations"
+                    autoFocus
                     className="w-full px-3 py-2.5 rounded-xl text-sm focus:outline-none focus:ring-1 focus:ring-primary"
                     style={{ border: '0.5px solid #E5E7EB' }}
                   />
-                </div>
-                <div>
-                  <label className="block text-[11px] font-bold text-gray-500 uppercase tracking-wide mb-1">
-                    Location <span className="font-normal normal-case">(optional)</span>
-                  </label>
                   <div className="relative">
                     <MapPin className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-gray-400 pointer-events-none" />
                     <input
@@ -346,37 +391,94 @@ export default function OrgSettingsPage() {
                       style={{ border: '0.5px solid #E5E7EB' }}
                     />
                   </div>
-                </div>
-                <button
-                  type="submit"
-                  disabled={savingPublic}
-                  className="w-full py-2.5 bg-primary text-white rounded-xl text-sm font-semibold disabled:opacity-40 hover:bg-primary-dark transition-colors flex items-center justify-center gap-1.5"
-                >
-                  <Check className="w-3.5 h-3.5" />
-                  {savingPublic ? 'Saving…' : 'Save'}
-                </button>
+                  <div className="flex gap-2">
+                    <button
+                      type="button"
+                      onClick={cancelEditPublicProfile}
+                      className="flex-1 py-2.5 rounded-xl text-sm font-semibold text-gray-500 bg-gray-100 hover:bg-gray-200 transition-colors"
+                    >
+                      Cancel
+                    </button>
+                    <button
+                      type="submit"
+                      disabled={savingPublic}
+                      className="flex-1 py-2.5 bg-primary text-white rounded-xl text-sm font-semibold disabled:opacity-40 hover:bg-primary-dark transition-colors"
+                    >
+                      {savingPublic ? 'Saving…' : 'Save'}
+                    </button>
+                  </div>
 
-                {/* Public link */}
-                <div
-                  className="flex items-center justify-between px-3 py-2.5 rounded-xl bg-gray-50 mt-1"
-                  style={{ border: '0.5px solid #E5E7EB' }}
-                >
-                  <p className="text-[11px] text-gray-500 truncate font-mono">
-                    {typeof window !== 'undefined' ? window.location.origin : ''}/p/{org.slug}
-                  </p>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      const url = `${window.location.origin}/p/${org.slug}`
-                      navigator.clipboard.writeText(url).then(() => toast.success('Link copied!'))
-                    }}
-                    className="flex items-center gap-1 text-xs font-semibold text-primary hover:text-primary-dark transition-colors flex-shrink-0 ml-2"
+                  {/* Public link shown below edit form too */}
+                  <div
+                    className="flex items-center justify-between px-3 py-2.5 rounded-xl bg-gray-50 mt-1"
+                    style={{ border: '0.5px solid #E5E7EB' }}
                   >
-                    <Copy className="w-3 h-3" />
-                    Copy
-                  </button>
+                    <p className="text-[11px] text-gray-500 truncate font-mono">
+                      {typeof window !== 'undefined' ? window.location.origin : ''}/p/{org.slug}
+                    </p>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        const url = `${window.location.origin}/p/${org.slug}`
+                        navigator.clipboard.writeText(url).then(() => toast.success('Link copied!'))
+                      }}
+                      className="flex items-center gap-1 text-xs font-semibold text-primary hover:text-primary-dark transition-colors flex-shrink-0 ml-2"
+                    >
+                      <Copy className="w-3 h-3" />
+                      Copy
+                    </button>
+                  </div>
+                </form>
+              ) : (
+                <div className="space-y-2">
+                  <div
+                    className="flex items-start justify-between px-4 py-3 rounded-xl bg-white"
+                    style={{ border: '0.5px solid #E5E7EB' }}
+                  >
+                    <div className="min-w-0 flex-1">
+                      <p className="text-sm text-gray-700 truncate">
+                        {savedOrgDescription || <span className="text-gray-400">Add a description</span>}
+                      </p>
+                      {savedOrgLocation && (
+                        <p className="text-xs text-gray-400 flex items-center gap-1 mt-0.5">
+                          <MapPin className="w-3 h-3 flex-shrink-0" />
+                          {savedOrgLocation}
+                        </p>
+                      )}
+                      {!savedOrgLocation && (
+                        <p className="text-xs text-gray-400 mt-0.5">No location set</p>
+                      )}
+                    </div>
+                    <button
+                      onClick={() => setEditingPublicProfile(true)}
+                      className="flex items-center gap-1 text-xs font-semibold text-primary hover:text-primary-dark transition-colors flex-shrink-0 ml-3"
+                    >
+                      <Pencil className="w-3 h-3" />
+                      Edit
+                    </button>
+                  </div>
+
+                  {/* Public link */}
+                  <div
+                    className="flex items-center justify-between px-3 py-2.5 rounded-xl bg-gray-50"
+                    style={{ border: '0.5px solid #E5E7EB' }}
+                  >
+                    <p className="text-[11px] text-gray-500 truncate font-mono">
+                      {typeof window !== 'undefined' ? window.location.origin : ''}/p/{org.slug}
+                    </p>
+                    <button
+                      onClick={() => {
+                        const url = `${window.location.origin}/p/${org.slug}`
+                        navigator.clipboard.writeText(url).then(() => toast.success('Link copied!'))
+                      }}
+                      className="flex items-center gap-1 text-xs font-semibold text-primary hover:text-primary-dark transition-colors flex-shrink-0 ml-2"
+                    >
+                      <Copy className="w-3 h-3" />
+                      Copy
+                    </button>
+                  </div>
                 </div>
-              </form>
+              )
             )}
           </section>
         )}
