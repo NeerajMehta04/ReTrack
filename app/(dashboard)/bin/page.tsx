@@ -26,11 +26,13 @@ export default function BinPage() {
       supabase
         .from('items')
         .select('id, name, deleted_at')
+        .is('org_id', null)
         .not('deleted_at', 'is', null)
         .order('deleted_at', { ascending: false }),
       supabase
         .from('categories')
         .select('id, name, icon, color, deleted_at')
+        .is('org_id', null)
         .not('deleted_at', 'is', null)
         .order('deleted_at', { ascending: false }),
     ])
