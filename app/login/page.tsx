@@ -33,21 +33,14 @@ function LoginForm() {
   async function routeAfterSignIn(userEmail: string) {
     const { data: memberships } = await supabase
       .from('org_members')
-      .select('org_id, organizations(slug)')
+      .select('org_id')
       .eq('email', userEmail)
 
     if (!memberships || memberships.length === 0) {
-      router.push('/org/setup')
-      return
+      window.location.href = '/org/setup'
+    } else {
+      window.location.href = '/org/choose'
     }
-    if (memberships.length === 1) {
-      const raw = memberships[0].organizations as unknown
-      const slug = Array.isArray(raw)
-        ? (raw[0] as { slug: string })?.slug
-        : (raw as { slug: string } | null)?.slug
-      if (slug) { router.push(`/org/${slug}/items`); return }
-    }
-    router.push('/org/choose')
   }
 
   async function handleSubmit(e: React.FormEvent) {
