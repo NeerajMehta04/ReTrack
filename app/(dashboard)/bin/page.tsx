@@ -138,7 +138,7 @@ export default function BinPage() {
         <div className="flex items-start justify-between">
           <div>
             <h1 className="text-lg font-bold text-gray-900">Bin</h1>
-            <p className="text-xs text-gray-400 mt-0.5">Items are permanently deleted after 30 days</p>
+            <p className="text-[10px] text-gray-400 mt-0.5">Demo workspace</p>
           </div>
           {totalCount > 0 && (
             <button

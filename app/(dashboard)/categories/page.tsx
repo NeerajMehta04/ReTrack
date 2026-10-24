@@ -185,7 +185,7 @@ export default function CategoriesPage() {
         <div className="flex items-start justify-between">
           <div>
             <h1 className="text-lg font-bold text-gray-900">Categories</h1>
-            <p className="text-xs text-gray-400 mt-0.5">Tap a row to filter items</p>
+            <p className="text-[10px] text-gray-400 mt-0.5">Demo workspace</p>
           </div>
           <button
             onClick={openCreate}

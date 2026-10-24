@@ -111,7 +111,10 @@ export default function LogsPage() {
         style={{ borderBottom: '0.5px solid #F0D0DC' }}
       >
         <div className="flex items-center justify-between mb-3">
-          <h1 className="text-lg font-bold text-gray-900">Movement Logs</h1>
+          <div>
+            <h1 className="text-lg font-bold text-gray-900">Movement Logs</h1>
+            <p className="text-[10px] text-gray-400 mt-0.5">Demo workspace</p>
+          </div>
           <button
             onClick={handleExport}
             className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-primary rounded-lg hover:bg-primary-light transition-colors"
