@@ -200,6 +200,19 @@ export default function ItemModal({ open, onClose, categories, item, onSaved, or
 
     // ── Create path ────────────────────────────────────────────────────────
     if (!isEdit || !item) {
+      // Check for duplicate name in the same scope
+      let dupQuery = supabase
+        .from('items')
+        .select('id')
+        .ilike('name', name.trim())
+        .is('deleted_at', null)
+      dupQuery = orgId ? dupQuery.eq('org_id', orgId) : dupQuery.is('org_id', null)
+      const { data: existing } = await dupQuery.limit(1)
+      if (existing && existing.length > 0) {
+        toast.error(`An item named "${name.trim()}" already exists`)
+        return
+      }
+
       setSaving(true)
       try {
         const { data: newItem, error: createErr } = await supabase
