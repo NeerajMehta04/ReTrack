@@ -20,6 +20,8 @@ const CAT_EMOJIS = [
   '⭐','❤️','✅','🏷️','🎁','♻️','🔖','📌',
 ]
 
+const toTitleCase = (s: string) => s.replace(/\b\w/g, c => c.toUpperCase())
+
 // ── Types ─────────────────────────────────────────────────────────────────────
 type Item = { id: string; name: string }
 
@@ -74,11 +76,14 @@ export default function VoiceLogButton({ onLogged, offset = 'bottom-20 right-4',
 
   // Fetch items + categories on mount
   useEffect(() => {
-    const itemsQuery = supabase.from('items').select('id, name').is('deleted_at', null).order('name')
-    const catsQuery  = supabase.from('categories').select('*').order('name')
+    let itemsQuery = supabase.from('items').select('id, name').is('deleted_at', null).order('name')
+    let catsQuery  = supabase.from('categories').select('*').order('name')
     if (orgId) {
-      itemsQuery.eq('org_id', orgId)
-      catsQuery.eq('org_id', orgId)
+      itemsQuery = itemsQuery.eq('org_id', orgId)
+      catsQuery  = catsQuery.eq('org_id', orgId)
+    } else {
+      itemsQuery = itemsQuery.is('org_id', null)
+      catsQuery  = catsQuery.is('org_id', null)
     }
     itemsQuery.then(({ data }) => setItems(data ?? []))
     catsQuery.then(({ data }) => setLocalCategories(data ?? []))
@@ -160,7 +165,7 @@ export default function VoiceLogButton({ onLogged, offset = 'bottom-20 right-4',
       // Open inline new-item form, pre-fill from AI-parsed name if unmatched
       const currentRow = updates[i]
       setNewItemRowIdx(i)
-      setNewItemName(currentRow.item_id === null ? currentRow.item_name : '')
+      setNewItemName(currentRow.item_id === null ? toTitleCase(currentRow.item_name) : '')
       setNewItemCatId('')
       setShowNewCat(false)
       setNewCatName('')
@@ -544,7 +549,7 @@ export default function VoiceLogButton({ onLogged, offset = 'bottom-20 right-4',
               </button>
               <button
                 onClick={handleConfirm}
-                disabled={confirming}
+                disabled={confirming || newItemRowIdx !== null}
                 className="flex-1 py-3 bg-primary text-white rounded-xl text-sm font-semibold flex items-center justify-center gap-1.5 disabled:opacity-40 hover:bg-primary-dark transition-colors"
               >
                 {confirming ? (

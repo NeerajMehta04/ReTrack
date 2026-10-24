@@ -25,7 +25,7 @@ function ItemsList() {
   const supabase = createClient()
 
   useEffect(() => {
-    supabase.from('categories').select('*').order('name').then(({ data }) => data && setCategories(data))
+    supabase.from('categories').select('*').is('org_id', null).order('name').then(({ data }) => data && setCategories(data))
   }, [])
 
   const fetchItems = useCallback(async () => {
@@ -33,6 +33,7 @@ function ItemsList() {
     let query = supabase
       .from('items')
       .select('*, categories(*)')
+      .is('org_id', null)
       .is('deleted_at', null)
       .order('name')
 

@@ -72,7 +72,7 @@ Guidelines:
 - Return one update per item mentioned — if the speaker names several distinct items, split them into separate update objects.
 - "in" covers: received, added, donated, found, bought, got, "want to add", "add to the list" — anything that increases stock.
 - "out" covers: given away, removed, dispatched, used, distributed, lent out.
-- Treat Available items as opaque inventory labels, not their ordinary English meaning. Match spoken words to labels using plural/singular, capitalisation and minor spelling differences ("houses" matches "House", "sofas" matches "Sofa", "washing machines" matches "Washing Machine"). Only return item_id: null when truly no label resembles the spoken word.
+- Treat Available items as opaque inventory labels, not their ordinary English meaning. Match spoken words to labels using plural/singular, capitalisation and minor spelling differences ("houses" matches "House"). NEVER omit a mentioned item — if no label matches, ALWAYS return a row with item_id: null and item_name set to the spoken name so the user can act on it.
 - Default quantity to 1 when not stated.
 - Return an empty updates array only if no physical item or quantity is mentioned at all.`,
         },

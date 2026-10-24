@@ -64,7 +64,7 @@ export default function CategoriesPage() {
   const [deleting, setDeleting] = useState(false)
 
   const fetchCategories = useCallback(async () => {
-    const { data: cats } = await supabase.from('categories').select('*').is('deleted_at', null).order('name')
+    const { data: cats } = await supabase.from('categories').select('*').is('org_id', null).is('deleted_at', null).order('name')
     if (!cats) { setLoading(false); return }
 
     const withCounts = await Promise.all(

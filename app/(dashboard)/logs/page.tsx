@@ -64,6 +64,7 @@ export default function LogsPage() {
     let query = supabase
       .from('logs')
       .select('*, items(*, categories(*)), groups(*)')
+      .is('org_id', null)
       .order(sortField, { ascending: sortDir === 'asc' })
 
     if (filterFrom) query = query.gte('created_at', filterFrom + 'T00:00:00')
@@ -78,8 +79,8 @@ export default function LogsPage() {
   useEffect(() => { fetchLogs() }, [fetchLogs])
 
   useEffect(() => {
-    supabase.from('items').select('*').order('name').then(({ data }) => data && setItems(data))
-    supabase.from('groups').select('*').order('name').then(({ data }) => data && setGroups(data))
+    supabase.from('items').select('*').is('org_id', null).order('name').then(({ data }) => data && setItems(data))
+    supabase.from('groups').select('*').is('org_id', null).order('name').then(({ data }) => data && setGroups(data))
   }, [])
 
   function toggleSort(field: SortField) {
