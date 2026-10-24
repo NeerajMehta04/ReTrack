@@ -25,6 +25,16 @@ export async function POST(req: NextRequest) {
 
   const items: { id: string; name: string }[] = JSON.parse(itemsJson)
 
+  // Deterministic fallback: normalize plural/singular + lowercase so "houses" → "house" = "House"
+  function normalizeLabel(s: string): string {
+    const t = s.toLowerCase().trim()
+    if (t.endsWith('ies')) return t.slice(0, -3) + 'y' // batteries → battery
+    if (t.endsWith('ves')) return t.slice(0, -3) + 'f' // shelves → shelf
+    if (t.endsWith('ses')) return t.slice(0, -2)        // buses → bus
+    if (t.endsWith('s'))  return t.slice(0, -1)         // chairs → chair, houses → house
+    return t
+  }
+
   try {
     // Next.js returns a File object from formData
     const audioBlob = audioEntry as unknown as Blob
@@ -62,7 +72,7 @@ Guidelines:
 - Return one update per item mentioned — if the speaker names several distinct items, split them into separate update objects.
 - "in" covers: received, added, donated, found, bought, got, "want to add", "add to the list" — anything that increases stock.
 - "out" covers: given away, removed, dispatched, used, distributed, lent out.
-- Match item names fuzzily to the available list (e.g. "footballs" → "Football", "chairs" → "Chair"). If no match, set item_id to null and copy the spoken name as-is.
+- Treat Available items as opaque inventory labels, not their ordinary English meaning. Match spoken words to labels using plural/singular, capitalisation and minor spelling differences ("houses" matches "House", "sofas" matches "Sofa", "washing machines" matches "Washing Machine"). Only return item_id: null when truly no label resembles the spoken word.
 - Default quantity to 1 when not stated.
 - Return an empty updates array only if no physical item or quantity is mentioned at all.`,
         },
@@ -81,6 +91,17 @@ Guidelines:
       direction: u.direction === 'out' ? 'out' : 'in',
       quantity: Math.max(1, Math.round(Number(u.quantity) || 1)),
     }))
+
+    // Fallback: if GPT returned item_id: null, try deterministic normalize match
+    for (const u of updates) {
+      if (u.item_id !== null) continue
+      const spokenNorm = normalizeLabel(u.item_name)
+      const match = items.find(i => normalizeLabel(i.name) === spokenNorm)
+      if (match) {
+        u.item_id = match.id
+        u.item_name = match.name
+      }
+    }
 
     return NextResponse.json({ transcript, updates })
   } catch (error) {
