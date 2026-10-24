@@ -140,6 +140,16 @@ export default function OrgItemDetailPage() {
     if (!item) return
     setDeleting(true)
     try {
+      // Log the deletion for traceability before soft-deleting
+      if (item.stock > 0) {
+        await supabase.from('logs').insert({
+          item_id: item.id,
+          direction: 'out',
+          amount: item.stock,
+          comment: 'Item deleted',
+          org_id: org.id,
+        })
+      }
       const { error } = await supabase.from('items').update({ deleted_at: new Date().toISOString() }).eq('id', item.id)
       if (error) throw error
       toast.success('Item moved to bin')
@@ -494,7 +504,7 @@ export default function OrgItemDetailPage() {
             <div className="flex justify-center mb-4"><div className="w-10 h-1 bg-gray-200 rounded-full" /></div>
             <div className="flex items-center justify-center w-14 h-14 bg-red-100 rounded-2xl mx-auto mb-4"><Trash2 className="w-6 h-6 text-red-500" /></div>
             <h3 className="text-base font-bold text-gray-900 text-center mb-1">Delete &quot;{item.name}&quot;?</h3>
-            <p className="text-sm text-gray-500 text-center mb-6">This will also delete all associated log entries. This cannot be undone.</p>
+            <p className="text-sm text-gray-500 text-center mb-6">The item will be moved to the bin. A deletion log entry will be created for traceability.</p>
             <div className="flex gap-3">
               <button onClick={() => setConfirmDelete(false)} className="flex-1 py-3 rounded-xl text-sm font-semibold text-gray-600 hover:bg-gray-50 transition-colors" style={{ border: '0.5px solid #E5E7EB' }}>Cancel</button>
               <button onClick={handleDelete} disabled={deleting} className="flex-1 py-3 bg-red-500 text-white rounded-xl text-sm font-semibold hover:bg-red-600 disabled:opacity-60 transition-colors">{deleting ? 'Deleting…' : 'Delete'}</button>
