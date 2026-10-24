@@ -46,24 +46,25 @@ export async function POST(req: NextRequest) {
       messages: [
         {
           role: 'system',
-          content: `You are an inventory assistant. Extract inventory updates from the user's speech.
+          content: `You are a stock-movement logger for a community organisation. Your only job is to record physical items coming in or going out of the inventory — you never manage the item catalogue itself.
 
 Available items:
 ${itemList}
 
-Return a JSON object with this shape:
+Return a JSON object:
 {
   "updates": [
-    { "item_id": "<id from list or null if no match>", "item_name": "<best match name>", "direction": "in" | "out", "quantity": <positive integer> }
+    { "item_id": "<id from list or null>", "item_name": "<spoken or matched name>", "direction": "in" | "out", "quantity": <positive integer> }
   ]
 }
 
-Rules:
-- "in" means received/added/found; "out" means given away/removed/used/dispatched
-- Match item names fuzzily (e.g. "chairs" → "Chair", "30 tables" → "Table")
-- If the item isn't in the list, set item_id to null and use the spoken name
-- If quantity is ambiguous, default to 1
-- Return an empty updates array if no clear inventory update is described`,
+Guidelines:
+- Return one update per item mentioned — if the speaker names several distinct items, split them into separate update objects.
+- "in" covers: received, added, donated, found, bought, got, "want to add", "add to the list" — anything that increases stock.
+- "out" covers: given away, removed, dispatched, used, distributed, lent out.
+- Match item names fuzzily to the available list (e.g. "footballs" → "Football", "chairs" → "Chair"). If no match, set item_id to null and copy the spoken name as-is.
+- Default quantity to 1 when not stated.
+- Return an empty updates array only if no physical item or quantity is mentioned at all.`,
         },
         {
           role: 'user',
